@@ -25,4 +25,15 @@ final class SchemaMetadata
         public array $computed,
     ) {
     }
+
+    public function getField(string $name): ?FieldMetadata
+    {
+        foreach ($this->fields as $field) {
+            if($field->name === $name) {
+                return $field;
+            }
+        }
+
+        return null;
+    }
 }

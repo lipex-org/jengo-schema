@@ -14,6 +14,7 @@ final class QueryOptions
         public readonly SortOptions $sort = new SortOptions(),
         public readonly ?string $search = null,
         public readonly ?bool $logger = null,
+        public readonly bool $first = false,
     )
     {
     }

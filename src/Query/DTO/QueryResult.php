@@ -7,7 +7,7 @@ namespace Jengo\Schema\Query\DTO;
 final class QueryResult
 {
     public function __construct(
-        public array|object $data,
+        public array|object|null $data,
         public int $count,
         public PaginationData|null $pagination = null,
     )

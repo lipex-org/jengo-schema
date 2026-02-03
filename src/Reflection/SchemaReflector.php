@@ -13,12 +13,15 @@ use Jengo\Schema\Attributes\Relations\BelongsTo;
 use Jengo\Schema\Attributes\Relations\HasMany;
 use Jengo\Schema\Exceptions\InvalidRelationshipException;
 use Jengo\Schema\Exceptions\InvalidSchemaException;
+use Jengo\Schema\Hydration\PropertyTypeAnalyzer;
 use Jengo\Schema\Metadata\ComputedMetadata;
 use Jengo\Schema\Metadata\FieldMetadata;
 use Jengo\Schema\Metadata\RelationMetadata;
 use Jengo\Schema\Metadata\SchemaMetadata;
 use Jengo\Schema\Validation\SchemaValidator;
 use ReflectionClass;
+use ReflectionNamedType;
+use ReflectionProperty;
 use RuntimeException;
 
 final class SchemaReflector
@@ -50,6 +53,7 @@ final class SchemaReflector
 
         foreach ($reflection->getProperties() as $property) {
             $name = $property->getName();
+            $type = PropertyTypeAnalyzer::analyze($property);
 
             // Primary Key
             if (AttributeReflector::property($property, PrimaryKey::class)) {
@@ -63,6 +67,7 @@ final class SchemaReflector
                     name: $name,
                     searchable: false,
                     derived: false,
+                    type: $type
                 );
 
                 $parsedProperties[] = $name;
@@ -97,6 +102,7 @@ final class SchemaReflector
                     name: $name,
                     searchable: false,
                     derived: true,
+                    type: $type
                 );
 
                 $parsedProperties[] = $name;
@@ -112,6 +118,8 @@ final class SchemaReflector
                     name: $name,
                     searchable: $fieldAttr?->searchable ?? false,
                     derived: (bool) $derivedAttr,
+                    type: $type,
+                    cast: $fieldAttr?->cast ?? null
                 );
 
                 $parsedProperties[] = $name;
@@ -124,11 +132,11 @@ final class SchemaReflector
                     name: $name,
                     searchable: false,
                     derived: false,
+                    type: $type
                 );
             }
 
             $parsedProperties[] = $name;
-
         }
 
         if (!$primary) {
@@ -147,6 +155,8 @@ final class SchemaReflector
                 $computed[] = new ComputedMetadata(
                     name: $computedAttr->name,
                     method: $method->getName(),
+                    dependants: $computedAttr->dependants,
+                    cast: $computedAttr->cast
                 );
             }
         }

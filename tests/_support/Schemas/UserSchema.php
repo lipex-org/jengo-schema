@@ -9,6 +9,7 @@ use Jengo\Schema\Attributes\Field;
 use Jengo\Schema\Attributes\Model;
 use Jengo\Schema\Attributes\PrimaryKey;
 use Jengo\Schema\Attributes\Relations\BelongsTo;
+use Jengo\Schema\Attributes\Relations\HasMany;
 use Tests\Support\Entity\User;
 use Tests\Support\Models\UserModel;
 
@@ -33,6 +34,13 @@ final class UserSchema
         'user_id',
     )]
     public $profile;
+
+    #[HasMany(
+        UserFileSchema::class,
+        'id',
+        'user_id'
+    )]
+    public array $files = [];
 
     #[Computed('full_name')]
     public function getFullName(): string

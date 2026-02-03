@@ -61,7 +61,7 @@ final class QueryBuilder
         $options = $this->options;
 
         if (!$builder || !$options) {
-            throw new RuntimeException('You need to build the query before exceuting');
+            throw new RuntimeException('You need to build the query before executing');
         }
 
         if ($options->logger) {

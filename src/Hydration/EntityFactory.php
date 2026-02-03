@@ -17,8 +17,13 @@ final class EntityFactory
 
         if ($entityClass && class_exists($entityClass)) {
             $entity = new $entityClass();
+            $fields = [
+                $node->schema->primaryKey,
+                ...$node->schema->fields,
+                ...$node->schema->computed
+            ];
 
-            foreach ($node->schema->fields as $field) {
+            foreach ($fields as $field) {
                 if (array_key_exists($field->name, $data)) {
                     $entity->{$field->name} = $data[$field->name];
                 }
@@ -31,7 +36,7 @@ final class EntityFactory
                 if ($childData) {
                     if ($child->isMany()) {
                         $entity->{$child->edge->relation->name} = array_map(
-                            static fn ($d) => self::make($child, $d),
+                            static fn($d) => self::make($child, $d),
                             $childData,
                         );
                     } else {

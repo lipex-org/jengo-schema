@@ -1,9 +1,44 @@
-Graph (Tests\Unit\Graph)
- [x] Graph
+Options (Tests\Unit\Options)
+ [x] Example
 
-Query (Tests\Unit\Query)
- [x] Query
+Options Resolver (Tests\Unit\Resolver\OptionsResolver)
+ [x] Resolve in strict mode applies config defaults
+ [x] Provided options override defaults
+ [x] Resolve params merges callbacks
+ [x] Resolve select passes through
 
-Reflector (Tests\Unit\Reflector)
- [x] Reflector
+Profile Graph (Tests\Unit\Schema\Graph\ProfileGraph)
+ [x] Profile root integrity
+ [x] Child node is user
+ [x] Grandchild node recursion back to profile
+ [x] Great grandchild node recursion back to user
+ [x] Relationships are not many
+
+Profile Schema (Tests\Unit\Reflector\ProfileSchema)
+ [x] Profile schema
+
+Query Run (Tests\Feature\QueryRun)
+ [x] Run returns single object when first is true
+ [x] Run returns array of arrays when first is false
+ [x] Run includes computed fields in result
+
+User File Graph (Tests\Unit\Graph\UserFileGraph)
+ [x] Root level integrity
+ [x] First level child user
+ [x] Second level grandchild profile
+ [x] Third level recursion back to user
+ [x] Computed metadata integrity
+
+User File Schema (Tests\Unit\Reflector\UserFileSchema)
+ [x] User file schema
+
+User Graph (Tests\Unit\Schema\Graph\UserGraph)
+ [x] User root integrity
+ [x] Child node is profile
+ [x] Grandchild node recursion back to user
+ [x] Graph terminates correctly
+ [x] Computed metadata consistency
+
+User Schema (Tests\Unit\Reflector\UserSchema)
+ [x] User schema
 

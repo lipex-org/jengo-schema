@@ -23,7 +23,8 @@ final class QueryLogger
         self::$enabled = false;
     }
 
-    public static function record(): void {
+    public static function record(): void
+    {
         if (!self::$enabled) {
             return;
         }
@@ -37,9 +38,18 @@ final class QueryLogger
         }
 
         self::$logs[] = [
-            'sql'       => $query->getQuery(),
-            'duration'  => $query->getDuration(),
+            'sql' => $query->getQuery(),
+            'duration' => $query->getDuration(),
         ];
+    }
+
+    public static function add(string $key, mixed $data = null): void
+    {
+        if (!self::$enabled) {
+            return;
+        }
+
+        self::$logs[$key] = $data;
     }
 
     public static function all(): array

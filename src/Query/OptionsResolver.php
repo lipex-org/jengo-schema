@@ -40,6 +40,7 @@ final class OptionsResolver
             sort: self::resolveSort($options->sort, $config),
             search: $options->search,
             logger: $options->logger ?? $config->logger,
+            first: $options->first
         );
     }
 

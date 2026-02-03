@@ -12,7 +12,7 @@ use Tests\Support\Models\ProfileModel;
 use Tests\Support\Models\UserFileModel;
 use Tests\Support\Models\UserModel;
 
-class BaseTest extends CIUnitTestCase
+class TestCase extends CIUnitTestCase
 {
     use DatabaseTestTrait;
 
@@ -21,11 +21,16 @@ class BaseTest extends CIUnitTestCase
     protected $refresh = true;
     protected $namespace = null;
 
+    protected bool $fill = true;
+
     public function setUp(): void
     {
         $this->loadDependencies();
         $this->migrateDatabase();
-        $this->generateData();
+        
+        if ($this->fill) {
+            $this->generateData();
+        }
     }
 
     public function tearDown(): void

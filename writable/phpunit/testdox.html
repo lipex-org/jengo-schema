@@ -51,17 +51,58 @@
         </style>
     </head>
     <body>
-        <h2>Graph (Tests\Unit\Graph)</h2>
+        <h2>Options (Tests\Unit\Options)</h2>
         <ul>
-            <li class="success">Graph</li>
+            <li class="success">Example</li>
         </ul>
-        <h2>Query (Tests\Unit\Query)</h2>
+        <h2>Options Resolver (Tests\Unit\Resolver\OptionsResolver)</h2>
         <ul>
-            <li class="success">Query</li>
+            <li class="success">Resolve in strict mode applies config defaults</li>
+            <li class="success">Provided options override defaults</li>
+            <li class="success">Resolve params merges callbacks</li>
+            <li class="success">Resolve select passes through</li>
         </ul>
-        <h2>Reflector (Tests\Unit\Reflector)</h2>
+        <h2>Profile Graph (Tests\Unit\Schema\Graph\ProfileGraph)</h2>
         <ul>
-            <li class="success">Reflector</li>
+            <li class="success">Profile root integrity</li>
+            <li class="success">Child node is user</li>
+            <li class="success">Grandchild node recursion back to profile</li>
+            <li class="success">Great grandchild node recursion back to user</li>
+            <li class="success">Relationships are not many</li>
+        </ul>
+        <h2>Profile Schema (Tests\Unit\Reflector\ProfileSchema)</h2>
+        <ul>
+            <li class="success">Profile schema</li>
+        </ul>
+        <h2>Query Run (Tests\Feature\QueryRun)</h2>
+        <ul>
+            <li class="success">Run returns single object when first is true</li>
+            <li class="success">Run returns array of arrays when first is false</li>
+            <li class="success">Run includes computed fields in result</li>
+        </ul>
+        <h2>User File Graph (Tests\Unit\Graph\UserFileGraph)</h2>
+        <ul>
+            <li class="success">Root level integrity</li>
+            <li class="success">First level child user</li>
+            <li class="success">Second level grandchild profile</li>
+            <li class="success">Third level recursion back to user</li>
+            <li class="success">Computed metadata integrity</li>
+        </ul>
+        <h2>User File Schema (Tests\Unit\Reflector\UserFileSchema)</h2>
+        <ul>
+            <li class="success">User file schema</li>
+        </ul>
+        <h2>User Graph (Tests\Unit\Schema\Graph\UserGraph)</h2>
+        <ul>
+            <li class="success">User root integrity</li>
+            <li class="success">Child node is profile</li>
+            <li class="success">Grandchild node recursion back to user</li>
+            <li class="success">Graph terminates correctly</li>
+            <li class="success">Computed metadata consistency</li>
+        </ul>
+        <h2>User Schema (Tests\Unit\Reflector\UserSchema)</h2>
+        <ul>
+            <li class="success">User schema</li>
         </ul>
     </body>
 </html>

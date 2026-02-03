@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Jengo\Schema\Hydration;
 
+use CodeIgniter\Entity\Entity;
+use Jengo\Schema\Debug\QueryLogger;
 use Jengo\Schema\Graph\Node;
 use Jengo\Schema\Query\DTO\BuilderResult;
 use Jengo\Schema\Query\DTO\PaginationData;
@@ -14,15 +16,23 @@ use Jengo\Schema\Query\DTO\QueryResult;
 use Jengo\Schema\Query\QueryPlan;
 use Jengo\Schema\Support\AliasGenerator;
 use Jengo\Schema\Support\PaginationUtils;
+use RuntimeException;
 
 final class Hydrator
 {
     private array $data = [];
-
+    private null|array|Entity $resolvedData = null;
     private ?int $total = null;
 
     private QueryOptions $options;
     private QueryPlan $plan;
+    private Node $node;
+
+    private static Hydrator $self;
+
+    private $grouped = [];
+
+    private array $rows = [];
     /**
      * Hydrate flat DB rows into nested structure
      */
@@ -33,8 +43,22 @@ final class Hydrator
         $self->total = $builderResult->total;
         $self->options = $options ?? new QueryOptions();
         $self->plan = $plan;
+        $self->node = $rootNode;
+        $self->rows = $builderResult->rows;
 
-        $self->data = self::hydrateNode($rootNode, $builderResult->rows, $plan);
+        self::$self = $self;
+
+        $self->data = self::hydrateNode($rootNode, $plan);
+
+        $pl = [
+            'where' => $plan->where,
+            'aliases' => $plan->aliases,
+        ];
+
+
+        QueryLogger::add('plan', $pl);
+        QueryLogger::add('builderResult', $builderResult);
+        QueryLogger::add('hydratedData', $self->data);
 
         return $self->finish();
     }
@@ -46,14 +70,14 @@ final class Hydrator
     private function finish(): QueryResult
     {
         return new QueryResult(
-            data: $this->data,
-            count: count($this->data),
+            data: $this->resolveData(),
+            count: $this->resolveCount(),
             pagination: $this->resolvePagination(),
         );
     }
 
     /**
-     * Resolves total count for the query
+     * Resolves total count for the query(this is for all elements in db being paginated)
      * @return int
      */
     private function resolveTotal(): int
@@ -63,6 +87,49 @@ final class Hydrator
         }
 
         return count($this->data);
+    }
+
+    /**
+     * Resolves data based on whether request is for first element
+     * @return array|object|null
+     */
+    private function resolveData(): array|object|null
+    {
+        if ($this->resolvedData) {
+            return $this->resolvedData;
+        }
+
+        $result = [];
+        foreach ($this->data as $d) {
+            if (!is_array($d)) {
+                continue;
+            }
+            $result[] = EntityFactory::make($this->node, $d);
+        }
+
+        $data = $this->options->first ? $result[0] ?? null : $result;
+        $this->resolvedData = $data;
+
+        return $data;
+    }
+
+    /**
+     * Resolves count for the elements returned
+     * @return int
+     */
+    private function resolveCount(): int
+    {
+        $data = $this->resolveData();
+
+        if (!$data) {
+            return 0;
+        }
+
+        if (is_array($data) && !$this->options->first) {
+            return count($data);
+        }
+
+        return 1;
     }
 
     /**
@@ -97,62 +164,54 @@ final class Hydrator
     /**
      * Recursive hydration per node
      */
-    private static function hydrateNode(Node $node, array $rows, QueryPlan $plan): array
+    private static function hydrateNode(Node $node, QueryPlan $plan, ?array $rows = null): array
     {
         $alias = AliasGenerator::for($node);
+        $pk = $node->schema->primaryKey;
+        $pkCol = "{$alias}__{$pk->name}";
+        $rows = $rows ?? self::$self->rows;
 
-        // Group rows by primary key if node is HasMany
         $grouped = [];
-        $key = 0;
 
         foreach ($rows as $row) {
-            if ($node->isMany()) {
-                if (!isset($grouped[$key])) {
-                    $grouped[$key] = [];
-                }
-                $grouped[$key][] = $row;
-            } else {
-                // BelongsTo / one-to-one: just keep single row
-                $grouped[$key] = [$row];
+            $key = $row[$pkCol] ?? null;
+
+            if ($key === null) {
+                continue;
             }
-            $key++;
+
+            $grouped[$key][] = $row;
         }
 
         $result = [];
 
-        foreach ($grouped as $key => $groupRows) {
-            // Extract node fields
+        foreach ($grouped as $groupRows) {
             $record = [];
 
-            $pk = $node->schema->primaryKey;
-            $col = "{$alias}__{$pk->name}";
-            // add primary key
-            $record[$pk->name] = $groupRows[0][$col] ?? null;
+            $record[$pk->name] = $groupRows[0][$pkCol];
 
             foreach ($node->schema->fields as $field) {
-                // check if column is supposed to be selected
-                $selects = $plan->selectsRaw[$alias];
+                $selects = $plan->selectsRaw[$alias] ?? [];
 
-                if (!in_array($field->name, $selects))
+                if (!in_array($field->name, $selects, true)) {
                     continue;
+                }
 
                 $col = "{$alias}__{$field->name}";
-
                 $record[$field->name] = $groupRows[0][$col] ?? null;
             }
 
-            // Recurse into children
             foreach ($node->children as $child) {
-                $childData = self::hydrateNode($child, $groupRows, $plan);
+                $childData = self::hydrateNode($child, $plan, $groupRows);
 
-                if ($child->isMany()) {
-                    $record[$child->edge->relation->name] = array_values($childData);
-                } else {
-                    $record[$child->edge->relation->name] = reset($childData) ?: null;
-                }
+                $record[$child->edge->relation->name] = $child->isMany()
+                    ? array_values($childData)
+                    : ($childData[0] ?? null);
             }
 
-            $result[$key] = $record;
+            ComputedValueResolver::resolve($node, $record);
+
+            $result[] = $record;
         }
 
         return $result;

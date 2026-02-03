@@ -12,6 +12,7 @@ final class HasMany
     public function __construct(
         public string $schema,
         public string $from,
+        public ?string $to = null,
         public array $select = [],
     ) {
     }
