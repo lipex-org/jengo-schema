@@ -12,7 +12,7 @@ final class SchemaValidator
     public static function validate(SchemaMetadata $metadata): void
     {
         // Primary key check
-        if (! $metadata->primaryKey) {
+        if (!$metadata->primaryKey) {
             throw InvalidSchemaException::missingPrimaryKey($metadata->schemaClass);
         }
 
@@ -24,7 +24,7 @@ final class SchemaValidator
         }
 
         // Ensure field names are unique
-        $fieldNames = array_map(static fn ($f) => $f->name, $metadata->fields);
+        $fieldNames = array_map(static fn($f) => $f->name, $metadata->fields);
         if (count($fieldNames) !== count(array_unique($fieldNames))) {
             throw InvalidSchemaException::multiplePrimaryKeys($metadata->schemaClass);
         }

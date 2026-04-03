@@ -13,6 +13,13 @@ use Jengo\Schema\Attributes\Relations\HasMany;
 use Tests\Support\Entity\User;
 use Tests\Support\Models\UserModel;
 
+/**
+ * @property ProfileSchema $profile
+ * @property UserFileSchema[] $files
+ * @property string $full_name
+ * @property int $fileCount
+ * @property string $greeting
+ */
 #[Model(UserModel::class, User::class)]
 final class UserSchema
 {
@@ -42,9 +49,22 @@ final class UserSchema
     )]
     public array $files = [];
 
-    #[Computed('full_name')]
+    #[Computed('full_name', ['last_name', 'first_name'])]
     public function getFullName(): string
     {
         return "{$this->first_name} {$this->last_name}";
+    }
+
+    // test for using relationships as computed dependecies
+    #[Computed('fileCount', ['files'])]
+    public function getFileCount(): int
+    {
+        return count($this->files);
+    }
+
+    #[Computed('greeting', ['full_name'])]
+    public function getGreeting(): string
+    {
+        return "Hello, {$this->full_name}!";
     }
 }

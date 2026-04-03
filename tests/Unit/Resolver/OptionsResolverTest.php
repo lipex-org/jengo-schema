@@ -25,7 +25,7 @@ final class OptionsResolverTest extends TestCase
     public function setUp(): void
     {
         parent::setUp();
-        
+
         // Mock the SchemaConfig DTO
         $this->configMock = new SchemaConfig();
         $this->configMock->paginationOptions = new PaginationOptions(limit: 20, page: 1, linksMax: 5);
@@ -33,7 +33,7 @@ final class OptionsResolverTest extends TestCase
         $this->configMock->whereCallbacks = ['default_cb' => fn() => null];
         $this->configMock->logger = true;
 
-       Factories::injectMock('config', 'Schema', $this->configMock);
+        Factories::injectMock('config', 'Schema', $this->configMock);
     }
 
     /**
@@ -80,7 +80,7 @@ final class OptionsResolverTest extends TestCase
     {
         $customCb = fn() => 'custom';
         $params = new ParamOptions(callbacks: ['custom_cb' => $customCb]);
-        
+
         $inputOptions = new QueryOptions(params: $params);
         $resolved = OptionsResolver::resolve(QueryMode::INLINE, $inputOptions);
 
@@ -96,7 +96,7 @@ final class OptionsResolverTest extends TestCase
     {
         $select = new SelectOptions(select: ['id', 'name']);
         $inputOptions = new QueryOptions(select: $select);
-        
+
         $resolved = OptionsResolver::resolve(QueryMode::INLINE, $inputOptions);
 
         $this->assertSame(['id', 'name'], $resolved->select->select);

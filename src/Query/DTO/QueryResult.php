@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 declare(strict_types=1);
 
@@ -10,8 +10,7 @@ final class QueryResult
         public array|object|null $data,
         public int $count,
         public PaginationData|null $pagination = null,
-    )
-    {
+    ) {
         # code...
     }
 }

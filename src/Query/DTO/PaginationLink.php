@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 declare(strict_types=1);
 
@@ -11,7 +11,6 @@ final class PaginationLink
         public ?string $url,
         public ?int $page,
         public bool $active,
-    )
-    {
+    ) {
     }
 }

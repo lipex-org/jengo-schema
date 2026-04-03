@@ -27,7 +27,7 @@ class TestCase extends CIUnitTestCase
     {
         $this->loadDependencies();
         $this->migrateDatabase();
-        
+
         if ($this->fill) {
             $this->generateData();
         }

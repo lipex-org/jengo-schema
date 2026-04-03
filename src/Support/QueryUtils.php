@@ -10,7 +10,7 @@ use RuntimeException;
 
 final class QueryUtils
 {
-    
+
     public static function resolveTableFromSchema(SchemaMetadata $schema): string
     {
         $modelClass = $schema->modelClass;

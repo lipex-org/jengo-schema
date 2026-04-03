@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 declare(strict_types=1);
 
@@ -15,7 +15,6 @@ final class QueryOptions
         public readonly ?string $search = null,
         public readonly ?bool $logger = null,
         public readonly bool $first = false,
-    )
-    {
+    ) {
     }
 }

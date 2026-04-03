@@ -20,8 +20,6 @@ use Jengo\Schema\Metadata\RelationMetadata;
 use Jengo\Schema\Metadata\SchemaMetadata;
 use Jengo\Schema\Validation\SchemaValidator;
 use ReflectionClass;
-use ReflectionNamedType;
-use ReflectionProperty;
 use RuntimeException;
 
 final class SchemaReflector

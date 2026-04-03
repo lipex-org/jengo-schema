@@ -58,6 +58,7 @@ final class OptionsResolver
                 $config->whereCallbacks,
                 $params->callbacks
             ),
+            whereNotInParams: $params->whereNotInParams,
             isOr: $params->isOr
         );
     }

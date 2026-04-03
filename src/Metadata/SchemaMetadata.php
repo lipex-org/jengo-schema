@@ -29,8 +29,30 @@ final class SchemaMetadata
     public function getField(string $name): ?FieldMetadata
     {
         foreach ($this->fields as $field) {
-            if($field->name === $name) {
+            if ($field->name === $name) {
                 return $field;
+            }
+        }
+
+        return null;
+    }
+
+    public function getRelation(string $name): ?RelationMetadata
+    {
+        foreach ($this->relations as $relation) {
+            if ($relation->name === $name) {
+                return $relation;
+            }
+        }
+
+        return null;
+    }
+
+    public function getComputed(string $name): ?ComputedMetadata
+    {
+        foreach ($this->computed as $computed) {
+            if ($computed->name === $name) {
+                return $computed;
             }
         }
 

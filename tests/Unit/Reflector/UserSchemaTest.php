@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 declare(strict_types=1);
 
@@ -57,7 +57,7 @@ final class UserSchemaTest extends ReflectorTestCase
 
         $this->assertTrue($emailField->searchable);
         $this->assertFalse($emailField->derived);
-        
+
         // files
         $relation = $this->getRelation('files', $relationsArray);
 
@@ -69,7 +69,7 @@ final class UserSchemaTest extends ReflectorTestCase
         $this->assertEmpty($relation->select);
 
         // computed fields
-        $this->assertEquals(1, count($schema->computed));
+        $this->assertEquals(3, count($schema->computed));
 
         $fullNameComputedField = $schema->computed[0];
 

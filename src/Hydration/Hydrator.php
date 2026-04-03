@@ -9,14 +9,13 @@ use Jengo\Schema\Debug\QueryLogger;
 use Jengo\Schema\Graph\Node;
 use Jengo\Schema\Query\DTO\BuilderResult;
 use Jengo\Schema\Query\DTO\PaginationData;
-use Jengo\Schema\Query\DTO\PaginationLink;
 use Jengo\Schema\Query\DTO\PaginationLinksData;
 use Jengo\Schema\Query\DTO\QueryOptions;
 use Jengo\Schema\Query\DTO\QueryResult;
 use Jengo\Schema\Query\QueryPlan;
 use Jengo\Schema\Support\AliasGenerator;
+use Jengo\Schema\Support\ArrayUtils;
 use Jengo\Schema\Support\PaginationUtils;
-use RuntimeException;
 
 final class Hydrator
 {
@@ -53,9 +52,12 @@ final class Hydrator
         $pl = [
             'where' => $plan->where,
             'aliases' => $plan->aliases,
+            'selects' => $plan->selects,
+            'selectsRaw' => $plan->selectsRaw,
+            'joins' => $plan->joins,
         ];
 
-
+        QueryLogger::add('options', ArrayUtils::toArray($options));
         QueryLogger::add('plan', $pl);
         QueryLogger::add('builderResult', $builderResult);
         QueryLogger::add('hydratedData', $self->data);
@@ -169,18 +171,20 @@ final class Hydrator
         $alias = AliasGenerator::for($node);
         $pk = $node->schema->primaryKey;
         $pkCol = "{$alias}__{$pk->name}";
-        $rows = $rows ?? self::$self->rows;
+        $rows ??= self::$self->rows;
 
         $grouped = [];
 
+        $keyAlt = 0;
         foreach ($rows as $row) {
-            $key = $row[$pkCol] ?? null;
+            $key = $row[$pkCol] ?? $keyAlt;
 
             if ($key === null) {
                 continue;
             }
 
             $grouped[$key][] = $row;
+            $keyAlt++;
         }
 
         $result = [];
@@ -188,7 +192,11 @@ final class Hydrator
         foreach ($grouped as $groupRows) {
             $record = [];
 
-            $record[$pk->name] = $groupRows[0][$pkCol];
+            $pkValue = $groupRows[0][$pkCol] ?? null;
+
+            if ($pkValue) {
+                $record[$pk->name] = $pkValue;
+            }
 
             foreach ($node->schema->fields as $field) {
                 $selects = $plan->selectsRaw[$alias] ?? [];

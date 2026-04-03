@@ -9,8 +9,8 @@ use Jengo\Schema\Query\Enums\SortOrder;
 final class SortOptions
 {
     public function __construct(
-        public readonly string $column = 'created_at',
-        public readonly SortOrder $direction = SortOrder::ASC,
+        public readonly ?string $column = null,
+        public readonly SortOrder $direction = SortOrder::DESC,
     ) {
     }
 }

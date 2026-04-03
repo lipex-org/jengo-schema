@@ -23,7 +23,7 @@ final class DeriveResolver
             $record = [];
 
             foreach ($node->schema->fields as $field) {
-                $col                  = "{$alias}__{$field->name}";
+                $col = "{$alias}__{$field->name}";
                 $record[$field->name] = $row[$col] ?? null;
             }
 

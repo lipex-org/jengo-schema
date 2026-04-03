@@ -29,6 +29,7 @@ final class QueryRunTest extends TestCase
      */
     public function testRunReturnsSingleObjectWhenFirstIsTrue(): void
     {
+        $this->tearDown();
         // Seed 1 user with 1 file
         $userId = $this->db->table('users')->insert([
             'first_name' => 'Carleton',
@@ -46,12 +47,15 @@ final class QueryRunTest extends TestCase
         $options = new QueryOptions(
             params: new ParamOptions(['id' => $fileId]),
             derive: ['user.files'],
-            first: true
+            first: true,
+            logger: true
         );
 
         $result = Query::run(UserFileSchema::class, $options, QueryMode::INLINE);
 
         $this->assertInstanceOf(QueryResult::class, $result);
+
+        //dump_query();
 
         // Assert Data Structure for 'first'
         $data = $result->data;
@@ -64,7 +68,6 @@ final class QueryRunTest extends TestCase
 
         // Assert Pagination for single result
         $this->assertSame(1, $result->count);
-        //$this->assertSame(1, $result->pagination->limit);
     }
 
     /**
@@ -107,6 +110,7 @@ final class QueryRunTest extends TestCase
      */
     public function testRunIncludesComputedFieldsInResult(): void
     {
+        $this->tearDown();
         $this->db->table('users')->insert([
             'first_name' => 'John',
             'last_name' => 'Doe',

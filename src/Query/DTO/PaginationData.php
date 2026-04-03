@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 declare(strict_types=1);
 
@@ -14,7 +14,6 @@ final class PaginationData
          * @var PaginationLink[] $links
          */
         public array $links = [],
-    )
-    {
+    ) {
     }
 }

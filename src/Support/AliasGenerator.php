@@ -17,7 +17,7 @@ final class AliasGenerator
             return 't_0_root';
         }
 
-        $path  = self::path($node);
+        $path = self::path($node);
         $depth = count($path) - 1;
 
         return sprintf(

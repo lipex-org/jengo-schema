@@ -31,7 +31,7 @@ final class RelationshipGraph
     private static function attachPath(Node $root, string $path): void
     {
         $segments = explode('.', $path);
-        $current  = $root;
+        $current = $root;
 
         foreach ($segments as $segment) {
             $relation = self::findRelation($current->schema, $segment);

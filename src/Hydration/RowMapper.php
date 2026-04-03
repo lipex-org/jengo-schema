@@ -39,7 +39,7 @@ final class RowMapper
         $mapped[$alias] = [];
 
         foreach ($node->schema->fields as $field) {
-            $col                          = "{$alias}__{$field->name}";
+            $col = "{$alias}__{$field->name}";
             $mapped[$alias][$field->name] = $row[$col] ?? null;
         }
 

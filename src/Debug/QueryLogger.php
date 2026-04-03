@@ -52,6 +52,32 @@ final class QueryLogger
         self::$logs[$key] = $data;
     }
 
+    public static function append(string $key, mixed $data = null): void
+    {
+        if (!self::$enabled) {
+            return;
+        }
+
+        if (!isset(self::$logs[$key])) {
+            self::$logs[$key] = [];
+        }
+
+        self::$logs[$key][] = $data;
+    }
+
+    public static function prepend(string $key, mixed $data = null): void
+    {
+        if (!self::$enabled) {
+            return;
+        }
+
+        if (!isset(self::$logs[$key])) {
+            self::$logs[$key] = [];
+        }
+
+        array_unshift(self::$logs[$key], $data);
+    }
+
     public static function all(): array
     {
         return self::$logs;

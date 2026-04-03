@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 declare(strict_types=1);
 
@@ -9,7 +9,6 @@ final class BuilderResult
     public function __construct(
         public readonly array $rows,
         public readonly int $total,
-    )
-    {
+    ) {
     }
 }

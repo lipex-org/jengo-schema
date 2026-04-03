@@ -48,6 +48,6 @@ class Schema extends BaseConfig
         parent::__construct();
 
         $this->paginationOptions = new PaginationOptions();
-        $this->sortOptions       = new SortOptions();
+        $this->sortOptions = new SortOptions();
     }
 }

@@ -19,7 +19,7 @@ $finder = Finder::create()
 $overrides = [];
 
 $options = [
-    'finder'    => $finder,
+    'finder' => $finder,
     'cacheFile' => 'build/.php-cs-fixer.cache',
 ];
 

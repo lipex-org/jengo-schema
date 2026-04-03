@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 declare(strict_types=1);
 
@@ -10,7 +10,6 @@ final class PaginationLinksData
         public readonly int $page,
         public readonly int $total,
         public readonly int $limit,
-    )
-    {
+    ) {
     }
 }

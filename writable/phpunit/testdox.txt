@@ -1,3 +1,12 @@
+Fluent Query API (Tests\Unit\Query\FluentQueryAPI)
+ [x] Where and first returns single entity
+ [x] Or where and where not
+ [x] Where in and where not in
+ [x] Pagination and sorting
+ [x] Search
+ [x] Where since today lt gt null methods
+ [x] When and select and with and callback and mode aliases
+
 Options (Tests\Unit\Options)
  [x] Example
 

@@ -106,7 +106,7 @@ final class UserGraphTest extends TestCase
         $recursiveUser = $root->children[0]->children[0];
 
         foreach ([$root, $recursiveUser] as $node) {
-            $this->assertCount(1, $node->schema->computed);
+            $this->assertCount(3, $node->schema->computed);
             $this->assertSame('full_name', $node->schema->computed[0]->name);
             $this->assertSame('getFullName', $node->schema->computed[0]->method);
         }

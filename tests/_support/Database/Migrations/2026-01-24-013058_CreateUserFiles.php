@@ -21,7 +21,7 @@ final class CreateUserFiles extends Migration
                 'type' => 'INT',
                 'unsigned' => true
             ],
-            
+
             'name' => [
                 'type' => 'TEXT',
                 'null' => false

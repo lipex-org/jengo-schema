@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 declare(strict_types=1);
 
@@ -14,7 +14,6 @@ use Tests\Support\Schemas\UserSchema;
 
 final class ProfileSchemaTest extends ReflectorTestCase
 {
-
     public function testProfileSchema(): void
     {
         $schema = SchemaReflector::reflect(ProfileSchema::class);
@@ -68,13 +67,13 @@ final class ProfileSchemaTest extends ReflectorTestCase
 
         $this->assertFalse($field->searchable);
         $this->assertFalse($field->derived);
-        
+
         // user_id
         $field = $this->getField('address', $fieldsArray);
 
         $this->assertFalse($field->searchable);
         $this->assertFalse($field->derived);
-        
+
         // user_id
         $field = $this->getField('github_handle', $fieldsArray);
 

@@ -23,8 +23,8 @@ final class ProfileGraphTest extends TestCase
     {
         parent::setUp();
 
-         $schema = SchemaReflector::reflect(ProfileSchema::class);
-        
+        $schema = SchemaReflector::reflect(ProfileSchema::class);
+
         $this->graph = RelationshipGraph::build(
             rootSchema: $schema,
             derivePaths: ['user.profile.user'],
@@ -41,7 +41,7 @@ final class ProfileGraphTest extends TestCase
         $this->assertInstanceOf(Node::class, $root);
         $this->assertSame(ProfileSchema::class, $root->schema->schemaClass);
         $this->assertTrue($root->isRoot());
-        
+
         // Profile should have 8 fields as per the dump
         $this->assertCount(8, $root->schema->fields);
         $this->assertSame('user_id', $root->schema->fields[0]->name);
@@ -59,10 +59,10 @@ final class ProfileGraphTest extends TestCase
         $userNode = $root->children[0];
         $this->assertSame(UserSchema::class, $userNode->schema->schemaClass);
         $this->assertSame($root, $userNode->parent);
-        
+
         // Check User fields and computed properties
         $this->assertCount(5, $userNode->schema->fields);
-        $this->assertCount(1, $userNode->schema->computed);
+        $this->assertCount(3, $userNode->schema->computed);
         $this->assertSame('full_name', $userNode->schema->computed[0]->name);
     }
 
@@ -94,7 +94,7 @@ final class ProfileGraphTest extends TestCase
 
         $finalUserNode = $recursiveProfileNode->children[0];
         $this->assertSame(UserSchema::class, $finalUserNode->schema->schemaClass);
-        
+
         // Verify this is the terminal node (leaf)
         $this->assertEmpty($finalUserNode->children, "The graph should terminate at the third level (User).");
     }
@@ -105,7 +105,7 @@ final class ProfileGraphTest extends TestCase
     public function testRelationshipsAreNotMany(): void
     {
         $node = $this->graph->root;
-        
+
         // Traverse through and check isMany()
         while (!empty($node->children)) {
             $node = $node->children[0];
