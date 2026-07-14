@@ -40,6 +40,10 @@ final class PaginationUtils
         $total = $data->total;
         $perPage = $data->limit;
 
+        if ($perPage === null || $perPage === 0) {
+            return [];
+        }
+
         $totalPages = (int) ceil($total / $perPage);
 
         // Ensure previous and next URLs

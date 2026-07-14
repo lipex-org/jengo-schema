@@ -177,14 +177,17 @@ final class Hydrator
 
         $keyAlt = 0;
         foreach ($rows as $row) {
-            $key = $row[$pkCol] ?? $keyAlt;
-
-            if ($key === null) {
-                continue;
+            if (array_key_exists($pkCol, $row)) {
+                $key = $row[$pkCol];
+                if ($key === null) {
+                    continue;
+                }
+            } else {
+                $key = $keyAlt;
+                $keyAlt++;
             }
 
             $grouped[$key][] = $row;
-            $keyAlt++;
         }
 
         $result = [];

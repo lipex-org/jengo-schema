@@ -335,6 +335,17 @@ final class FluentQueryAPI
     }
 
     /**
+     * Alias for where with stirct array type required and or flag raised
+     * @param string $column
+     * @param array $values
+     * @return FluentQueryAPI
+     */
+    public function orWhereIn(string $column, array $values): self
+    {
+        return $this->where($column, $values, true);
+    }
+
+    /**
      * Applies whereNotIn logic
      * @param string $column
      * @param array $values
@@ -478,7 +489,7 @@ final class FluentQueryAPI
      */
     public function exists(): bool
     {
-        return $this->limit(1)->first() !== null;
+        return $this->limit(1)->first()->data !== null;
     }
 
     /**
@@ -495,7 +506,7 @@ final class FluentQueryAPI
         return $result;
     }
 
-    public function get(bool $value = false): array|object|null
+    public function get(bool $value = false): object|array|null
     {
         $result = $this->execute(first: false);
 
@@ -504,6 +515,21 @@ final class FluentQueryAPI
         }
 
         return $result;
+    }
+
+    /**
+     * Find a record by its primary key.
+     *
+     * @param mixed $id The primary key value
+     * @param bool $value Whether to return the entity directly instead of QueryResult
+     * @return object|null
+     */
+    public function find(mixed $id, bool $value = false): object|null
+    {
+        $metadata = \Jengo\Schema\Reflection\SchemaReflector::reflect($this->schema);
+        $primaryKeyName = $metadata->primaryKey->name;
+
+        return $this->where($primaryKeyName, $id)->first($value);
     }
 
     public static function dd(): void

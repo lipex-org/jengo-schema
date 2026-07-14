@@ -159,6 +159,11 @@ final class QueryBuilder
     {
         $limit = $pagination->limit;
         $page = $pagination->page;
+
+        if ($limit === null || $limit === 0) {
+            return $builder->get();
+        }
+
         $offset = ($page - 1) * $limit;
 
         return $builder->get($limit, $offset);

@@ -1,0 +1,98 @@
+{
+  "name": "jengo/schema",
+  "description": "Custom declarative ORM and Database Schema mapping tool for CodeIgniter 4. Enables data hydration, fluent query building, relationship mapping, and computed properties using PHP Attributes. Responses are non-paginated by default, and pagination is activated when limit is set outright.",
+  "attributes": [
+    {
+      "class": "Jengo\\Schema\\Attributes\\Model",
+      "target": "Class",
+      "description": "Maps the annotated Schema class to an underlying CodeIgniter 4 Model and Entity.",
+      "arguments": {
+        "model": "class-string (The CI4 Model class)",
+        "entity": "class-string (Optional Entity class for custom hydration)"
+      },
+      "usage": "use Jengo\\Schema\\Attributes\\Model;\n\n#[Model(model: UserModel::class)]\nclass UserSchema {}"
+    },
+    {
+      "class": "Jengo\\Schema\\Attributes\\PrimaryKey",
+      "target": "Property",
+      "description": "Marks the target property as the primary key of the database schema."
+    },
+    {
+      "class": "Jengo\\Schema\\Attributes\\Field",
+      "target": "Property",
+      "description": "Maps a property to a database field, enabling searchable filters and value casting.",
+      "arguments": {
+        "searchable": "bool (If true, this field is scanned during search operations)",
+        "cast": "Jengo\\Schema\\Hydration\\Enums\\Cast (Casts database values to array, bool, int, float, string, object, datetime)"
+      }
+    },
+    {
+      "class": "Jengo\\Schema\\Attributes\\Computed",
+      "target": "Method",
+      "description": "Annotates a getter method to declare a computed field dynamically generated based on dependent fields.",
+      "arguments": {
+        "name": "string (The name of the computed attribute in JSON output)",
+        "dependants": "array of strings (Fields that must be selected/fetched for the computation to run)",
+        "cast": "Jengo\\Schema\\Hydration\\Enums\\Cast (Optional cast for the computed result)"
+      },
+      "usage": "#[Computed(name: 'full_name', dependants: ['first_name', 'last_name'])]\npublic function getFullName(): string { return $this->first_name . ' ' . $this->last_name; }"
+    },
+    {
+      "class": "Jengo\\Schema\\Attributes\\Derived",
+      "target": "Method/Property",
+      "description": "Declares a derived field that fetches data dynamically outside standard table columns."
+    },
+    {
+      "class": "Jengo\\Schema\\Attributes\\Relations\\BelongsTo",
+      "target": "Property",
+      "description": "Declares a many-to-one relationship.",
+      "arguments": {
+        "relation": "class-string (The related Schema class)",
+        "foreignKey": "string (The local foreign key column mapping)"
+      }
+    },
+    {
+      "class": "Jengo\\Schema\\Attributes\\Relations\\HasMany",
+      "target": "Property",
+      "description": "Declares a one-to-many relationship.",
+      "arguments": {
+        "relation": "class-string (The related Schema class)",
+        "foreignKey": "string (The target table's foreign key mapping)"
+      }
+    }
+  ],
+  "query_builder": {
+    "class": "Jengo\\Schema\\Query\\FluentQueryAPI",
+    "description": "Fluent query wrapper constructed via the query() helper. Manages criteria composition, join resolution, sorting, and pagination.",
+    "methods": {
+      "where": "where(string $column, mixed $value, bool $isOr = false): self (Applies basic filter)",
+      "limit": "limit(int $limit): self (Applies query limit and enables pagination)",
+      "page": "page(int $page): self (Specifies pagination page)",
+      "sortBy": "sortBy(string $column, string|SortOrder $direction = SortOrder::ASC): self",
+      "select": "select(array|string $fields): self (Select specific columns)",
+      "derive": "derive(array|string $relations): self (Loads specific HasMany/BelongsTo relations)",
+      "mode": "mode(QueryMode $mode): self (Configures query hydration mode)",
+      "inline": "inline(): self (Runs in manual inline builder mode)",
+      "open": "open(): self (Runs in dynamic request-driven hydration mode, auto-building queries based on client request parameters)",
+      "first": "first(): QueryResult (Executes query and returns first matched record)",
+      "find": "find(mixed $id): QueryResult (Performs where clause on primary key and returns first match)",
+      "get": "get(): QueryResult (Executes and returns hydrated results)"
+    }
+  },
+  "helpers": [
+    {
+      "name": "query",
+      "signature": "query(string $schemaClass): FluentQueryAPI",
+      "description": "Agnostic entry point to start a schema query chain."
+    },
+    {
+      "name": "dump_query",
+      "signature": "dump_query(): void",
+      "description": "Dumps all queries executed by the QueryLogger for debugging purposes (disabled in production)."
+    }
+  ],
+  "usage": {
+    "declarative_schema": "#[Model(model: OrderModel::class)]\nclass OrderSchema {\n    #[PrimaryKey]\n    public int $id;\n    \n    #[Field(searchable: true)]\n    public string $reference;\n\n    #[Field(cast: Cast::float)]\n    public float $total;\n\n    #[BelongsTo(relation: UserSchema::class, foreignKey: 'user_id')]\n    public ?UserSchema $user;\n}",
+    "querying": "$orders = query(OrderSchema::class)\n    ->where('total', 100.00)\n    ->derive('user')\n    ->inline()\n    ->get();"
+  }
+}

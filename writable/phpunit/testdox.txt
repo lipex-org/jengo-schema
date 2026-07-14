@@ -7,6 +7,11 @@ Fluent Query API (Tests\Unit\Query\FluentQueryAPI)
  [x] Where since today lt gt null methods
  [x] When and select and with and callback and mode aliases
 
+New Features (Tests\Feature\NewFeatures)
+ [x] Empty has many relation returns empty array
+ [x] Default response is not paginated
+ [x] Find method finds by primary key
+
 Options (Tests\Unit\Options)
  [x] Example
 
