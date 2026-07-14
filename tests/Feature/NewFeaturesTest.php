@@ -84,4 +84,39 @@ final class NewFeaturesTest extends TestCase
         $this->assertSame('Bob', $result->data->first_name);
         $this->assertSame($id2, $result->data->id);
     }
+
+    public function testDeeplyNestedHasManyRelationWithEmptyChild()
+    {
+        // Seed 1 user
+        $this->db->table('users')->insert([
+            'first_name' => 'Alice',
+            'last_name' => 'Smith',
+            'email' => 'alice@example.com'
+        ]);
+        $userId = (int) $this->db->insertID();
+
+        // Seed 1 file for user
+        $this->db->table('user_files')->insert([
+            'name' => 'document.txt',
+            'size' => 1024.0,
+            'path' => '/docs/document.txt',
+            'user_id' => $userId
+        ]);
+
+        // No file comments are seeded (0 comments)
+
+        $result = query(UserSchema::class)
+            ->where('id', $userId)
+            ->derive('files.comments')
+            ->first();
+
+        $this->assertInstanceOf(User::class, $result->data);
+        $this->assertCount(1, $result->data->files);
+        
+        $file = $result->data->files[0];
+        $this->assertSame('document.txt', $file->name);
+        
+        // Deeply nested empty hasMany relation must be an empty array
+        $this->assertSame([], $file->comments);
+    }
 }

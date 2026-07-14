@@ -11,6 +11,7 @@ New Features (Tests\Feature\NewFeatures)
  [x] Empty has many relation returns empty array
  [x] Default response is not paginated
  [x] Find method finds by primary key
+ [x] Deeply nested has many relation with empty child
 
 Options (Tests\Unit\Options)
  [x] Example

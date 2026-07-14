@@ -32,8 +32,9 @@ final class UserFileSchemaTest extends ReflectorTestCase
         $this->assertFalse($schema->primaryKey->derived);
 
         // fields
-        $this->assertEquals(5, count($schema->fields));
+        $this->assertEquals(6, count($schema->fields));
         $this->assertContains('name', $fieldNames);
+        $this->assertContains('comments', $fieldNames);
         $this->assertContains('size', $fieldNames);
         $this->assertContains('path', $fieldNames);
         $this->assertContains('user_id', $fieldNames);
