@@ -82,7 +82,7 @@ final class NewFeaturesTest extends TestCase
         $this->assertInstanceOf(QueryResult::class, $result);
         $this->assertInstanceOf(User::class, $result->data);
         $this->assertSame('Bob', $result->data->first_name);
-        $this->assertSame($id2, $result->data->id);
+        $this->assertSame((string) $id2, $result->data->id);
     }
 
     public function testDeeplyNestedHasManyRelationWithEmptyChild()

@@ -182,6 +182,7 @@ final class Hydrator
                 if ($pkVal === null) {
                     continue;
                 }
+                $pkVal = self::castValueToType($pkVal, $pk->type);
                 $key = 'pk_' . $pkVal;
             } else {
                 $key = 'alt_' . $keyAlt;
@@ -198,7 +199,8 @@ final class Hydrator
 
             $pkValue = $groupRows[0][$pkCol] ?? null;
 
-            if ($pkValue) {
+            if ($pkValue !== null) {
+                $pkValue = self::castValueToType($pkValue, $pk->type);
                 $record[$pk->name] = $pkValue;
             }
 
@@ -210,7 +212,15 @@ final class Hydrator
                 }
 
                 $col = "{$alias}__{$field->name}";
-                $record[$field->name] = $groupRows[0][$col] ?? null;
+                $val = $groupRows[0][$col] ?? null;
+                if ($val !== null) {
+                    if ($field->cast !== null) {
+                        $val = ValueCaster::cast($val, $field->cast->value);
+                    } else {
+                        $val = self::castValueToType($val, $field->type);
+                    }
+                }
+                $record[$field->name] = $val;
             }
 
             foreach ($node->children as $child) {
@@ -227,5 +237,56 @@ final class Hydrator
         }
 
         return $result;
+    }
+
+    /**
+     * Automatically cast database scalar values to match property union types.
+     */
+    private static function castValueToType(mixed $value, \Jengo\Schema\Hydration\DTO\PropertyType $propertyType): mixed
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $allowedTypes = $propertyType->getTypes();
+        if (in_array('mixed', $allowedTypes, true)) {
+            return $value;
+        }
+
+        $currentType = gettype($value);
+        $normalizedType = match ($currentType) {
+            'double' => 'float',
+            'integer' => 'int',
+            'boolean' => 'bool',
+            default => $currentType
+        };
+
+        if (in_array($normalizedType, $allowedTypes, true)) {
+            return $value;
+        }
+
+        foreach ($allowedTypes as $targetType) {
+            switch ($targetType) {
+                case 'int':
+                    if (is_scalar($value)) {
+                        return (int) $value;
+                    }
+                    break;
+                case 'string':
+                    if (is_scalar($value) || (is_object($value) && method_exists($value, '__toString'))) {
+                        return (string) $value;
+                    }
+                    break;
+                case 'float':
+                    if (is_scalar($value)) {
+                        return (float) $value;
+                    }
+                    break;
+                case 'bool':
+                    return (bool) $value;
+            }
+        }
+
+        return $value;
     }
 }
