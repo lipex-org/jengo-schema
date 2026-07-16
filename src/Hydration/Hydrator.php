@@ -178,12 +178,13 @@ final class Hydrator
         $keyAlt = 0;
         foreach ($rows as $row) {
             if (array_key_exists($pkCol, $row)) {
-                $key = $row[$pkCol];
-                if ($key === null) {
+                $pkVal = $row[$pkCol];
+                if ($pkVal === null) {
                     continue;
                 }
+                $key = 'pk_' . $pkVal;
             } else {
-                $key = $keyAlt;
+                $key = 'alt_' . $keyAlt;
                 $keyAlt++;
             }
 

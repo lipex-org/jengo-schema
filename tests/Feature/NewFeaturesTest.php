@@ -119,4 +119,43 @@ final class NewFeaturesTest extends TestCase
         // Deeply nested empty hasMany relation must be an empty array
         $this->assertSame([], $file->comments);
     }
+
+    public function testHydratorPreservesStringAndFloatPrimaryKeys()
+    {
+        $ref = new \ReflectionClass(\Jengo\Schema\Hydration\Hydrator::class);
+        $method = $ref->getMethod('hydrateNode');
+        $method->setAccessible(true);
+
+        $schema = \Jengo\Schema\Reflection\SchemaReflector::reflect(UserSchema::class);
+        $node = new \Jengo\Schema\Graph\Node($schema);
+        $options = new \Jengo\Schema\Query\DTO\QueryOptions();
+        $plan = new \Jengo\Schema\Query\QueryPlan($node, $options);
+        \Jengo\Schema\Query\Query::set(\Jengo\Schema\Query\QueryPlan::class, $plan);
+
+        $rows = [
+            [
+                't_0_root__id' => '0123',
+                't_0_root__first_name' => 'Alice',
+                't_0_root__last_name' => 'Smith',
+                't_0_root__email' => 'alice@example.com',
+            ],
+            [
+                't_0_root__id' => '1.5',
+                't_0_root__first_name' => 'Bob',
+                't_0_root__last_name' => 'Jones',
+                't_0_root__email' => 'bob@example.com',
+            ]
+        ];
+
+        $hydrator = new \Jengo\Schema\Hydration\Hydrator($plan, $rows);
+        $selfProp = $ref->getProperty('self');
+        $selfProp->setAccessible(true);
+        $selfProp->setValue(null, $hydrator);
+
+        $result = $method->invoke(null, $node, $plan, $rows);
+
+        $this->assertCount(2, $result);
+        $this->assertSame('0123', $result[0]['id']);
+        $this->assertSame('1.5', $result[1]['id']);
+    }
 }
