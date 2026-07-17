@@ -158,4 +158,27 @@ final class NewFeaturesTest extends TestCase
         $this->assertSame('0123', $result[0]['id']);
         $this->assertSame('1.5', $result[1]['id']);
     }
+
+    public function testPaginationGroupCanBeSetFluently()
+    {
+        // Seed 5 users to ensure we have enough for multiple pages
+        for ($i = 1; $i <= 5; $i++) {
+            $this->db->table('users')->insert([
+                'first_name' => "User {$i}",
+                'last_name' => 'Test',
+                'email' => "user{$i}@example.com"
+            ]);
+        }
+
+        $result = query(UserSchema::class)
+            ->paginate(1, 2, 'custom_group')
+            ->get();
+
+        $this->assertInstanceOf(QueryResult::class, $result);
+        $this->assertNotEmpty($result->pagination->links);
+
+        // Assert that the generated link URL contains the custom group name
+        $linkUrl = $result->pagination->links[1]->url; // Page 1 link
+        $this->assertStringContainsString('page_custom_group=1', $linkUrl);
+    }
 }

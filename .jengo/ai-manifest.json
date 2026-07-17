@@ -1,6 +1,6 @@
 {
   "name": "jengo/schema",
-  "description": "Custom declarative ORM and Database Schema mapping tool for CodeIgniter 4. Enables data hydration, fluent query building, relationship mapping, and computed properties using PHP Attributes. Responses are non-paginated by default, and pagination is activated when limit is set outright.",
+  "description": "Custom declarative ORM and Database Schema mapping tool for CodeIgniter 4. Enables data hydration, fluent query building, relationship mapping, and computed properties using PHP Attributes. Responses are non-paginated by default, and pagination is activated when limit is set outright. Pagination links automatically append the pagination group suffix (e.g. ?page_custom_group=X) if a custom group is specified.",
   "attributes": [
     {
       "class": "Jengo\\Schema\\Attributes\\Model",
@@ -68,6 +68,8 @@
       "where": "where(string $column, mixed $value, bool $isOr = false): self (Applies basic filter)",
       "limit": "limit(int $limit): self (Applies query limit and enables pagination)",
       "page": "page(int $page): self (Specifies pagination page)",
+      "paginate": "paginate(int $page, int $perPage = 15, string $group = 'default'): self (Applies page, limit, and configures pagination group for generating links)",
+      "paginationGroup": "paginationGroup(string $group): self (Sets custom pagination group used for links)",
       "sortBy": "sortBy(string $column, string|SortOrder $direction = SortOrder::ASC): self",
       "select": "select(array|string $fields): self (Select specific columns)",
       "derive": "derive(array|string $relations): self (Loads specific HasMany/BelongsTo relations)",

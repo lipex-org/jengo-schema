@@ -32,6 +32,7 @@ final class FluentQueryAPI
     private ?string $search = null;
     private ?bool $logger = null;
     private QueryMode $mode = QueryMode::INLINE;
+    private string $paginationGroup = 'default';
 
     public function __construct(
         private readonly string $schema
@@ -441,9 +442,21 @@ final class FluentQueryAPI
      * @param int $perPage
      * @return FluentQueryAPI
      */
-    public function paginate(int $page, int $perPage = 15): self
+    public function paginate(int $page, int $perPage = 15, string $group = 'default'): self
     {
+        $this->paginationGroup = $group;
         return $this->page($page)->limit($perPage);
+    }
+
+    /**
+     * Configure a specific pagination group.
+     * @param string $group
+     * @return FluentQueryAPI
+     */
+    public function paginationGroup(string $group): self
+    {
+        $this->paginationGroup = $group;
+        return $this;
     }
 
     /**
@@ -557,7 +570,8 @@ final class FluentQueryAPI
             select: new SelectOptions(select: $this->select),
             pagination: new PaginationOptions(
                 limit: $this->limit,
-                page: $this->page
+                page: $this->page,
+                group: $this->paginationGroup
             ),
             derive: $this->derive,
             sort: new SortOptions(
