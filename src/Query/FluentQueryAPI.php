@@ -33,6 +33,7 @@ final class FluentQueryAPI
     private ?bool $logger = null;
     private QueryMode $mode = QueryMode::INLINE;
     private string $paginationGroup = 'default';
+    private array $allowedCapabilities = ['pagination'];
 
     public function __construct(
         private readonly string $schema
@@ -67,9 +68,10 @@ final class FluentQueryAPI
      * apply options using the provided methods.
      * @return FluentQueryAPI
      */
-    public function open(): self
+    public function open(array $allowedCapabilities = ['pagination']): self
     {
-        return $this->mode(QueryMode::INLINE);
+        $this->allowedCapabilities = $allowedCapabilities;
+        return $this->mode(QueryMode::OPEN);
     }
 
     /**
@@ -401,9 +403,9 @@ final class FluentQueryAPI
      * Alias for mode method with QueryMode::OPEN
      * @return FluentQueryAPI
      */
-    public function openMode(): self
+    public function openMode(array $allowedCapabilities = ['pagination']): self
     {
-        return $this->mode(QueryMode::OPEN);
+        return $this->open($allowedCapabilities);
     }
 
     /**
@@ -580,7 +582,8 @@ final class FluentQueryAPI
             ),
             search: $this->search,
             logger: $this->logger,
-            first: $first
+            first: $first,
+            allowedCapabilities: $this->allowedCapabilities
         );
 
         return Query::run($this->schema, $options, $this->mode);

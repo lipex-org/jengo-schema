@@ -112,10 +112,10 @@ final class NewFeaturesTest extends TestCase
 
         $this->assertInstanceOf(User::class, $result->data);
         $this->assertCount(1, $result->data->files);
-        
+
         $file = $result->data->files[0];
         $this->assertSame('document.txt', $file->name);
-        
+
         // Deeply nested empty hasMany relation must be an empty array
         $this->assertSame([], $file->comments);
     }
@@ -180,5 +180,50 @@ final class NewFeaturesTest extends TestCase
         // Assert that the generated link URL contains the custom group name
         $linkUrl = $result->pagination->links[1]->url; // Page 1 link
         $this->assertStringContainsString('page_custom_group=1', $linkUrl);
+    }
+
+    public function testOpenModeRespectsAllowedCapabilitiesAndCoordinatedPagination()
+    {
+        // Clear GET request global parameters
+        $_GET = [];
+
+        // Mock incoming HTTP GET parameters
+        $_GET['first_name'] = 'Alice';
+        $_GET['select'] = 'email';
+        $_GET['page_custom_group'] = '2';
+        $_GET['limit_custom_group'] = '2';
+        request()->setGlobal('get', $_GET);
+
+        // Seed some user records
+        for ($i = 1; $i <= 5; $i++) {
+            $this->db->table('users')->insert([
+                'first_name' => "User {$i}",
+                'last_name' => 'Test',
+                'email' => "user{$i}@example.com"
+            ]);
+        }
+
+        // Run query with open mode restricted only to pagination, but using custom group
+        $result = query(UserSchema::class)
+            ->open(['pagination'])
+            ->paginationGroup('custom_group')
+            ->get();
+
+        $this->assertInstanceOf(QueryResult::class, $result);
+
+        // 1. Pagination MUST be resolved from HTTP request using the coordinated custom group key (page_custom_group = 2)
+        $this->assertSame(2, $result->pagination->page);
+
+        // 2. Select columns from HTTP request MUST be ignored because 'select' capability is not allowed
+        $this->assertNotNull($result->data[0]->first_name);
+
+        // 3. Where filters from HTTP request (first_name = Alice) MUST be ignored because 'where' capability is not allowed
+        // We seeded 5 records and limited by 2 per page, on page 2 we should get records 3 and 4
+        $this->assertCount(2, $result->data);
+        $this->assertSame('User 3', $result->data[0]->first_name);
+
+        // Cleanup
+        $_GET = [];
+        request()->setGlobal('get', $_GET);
     }
 }

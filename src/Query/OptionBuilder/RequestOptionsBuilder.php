@@ -10,6 +10,8 @@ use Jengo\Schema\Query\DTO\PaginationOptions;
 use Jengo\Schema\Query\DTO\ParamOptions;
 use Jengo\Schema\Query\DTO\QueryOptions;
 use Jengo\Schema\Query\DTO\SelectOptions;
+use Jengo\Schema\Query\DTO\SortOptions;
+use Jengo\Schema\Query\Enums\SortOrder;
 use Jengo\Schema\Support\Utils;
 
 final class RequestOptionsBuilder
@@ -41,48 +43,102 @@ final class RequestOptionsBuilder
     {
         $self = new self();
         $self->config = Utils::config();
-        $defaultOptions = new QueryOptions();
         $request = request();
+
+        $allowed = $options?->allowedCapabilities ?? ['pagination'];
+        $allowAll = in_array('*', $allowed, true) || in_array('all', $allowed, true);
 
         $self->paramCallbacks = [
             ...$self->config->whereCallbacks,
-            ...($options?->param->callbacks ?? [])
+            ...($options?->params->callbacks ?? [])
         ];
 
-        $orWhere = !!$request->getGet('orWhere');
+        // 1. Params / Where
+        $params = $options?->params->params ?? [];
+        if ($allowAll || in_array('where', $allowed, true)) {
+            $orWhere = !!$request->getGet('orWhere');
+            $requestParams = $self->parseWhere($request->getGet(), !$orWhere);
+            $params = array_merge($params, $requestParams);
+        }
 
-        // get the params from the request
-        $params = $self->parseWhere($request->getGet(), !$orWhere);
-        $select = explode(',', $request->getGet('select') ?? '') ?? [];
-        $derive = explode(',', $request->getGet('derive') ?? '') ?? [];
-        $search = $request->getGet('search');
-        $sort = $request->getGet('sort');
+        // 2. Select
+        $select = $options?->select->select ?? [];
+        if ($allowAll || in_array('select', $allowed, true)) {
+            $requestSelect = explode(',', $request->getGet('select') ?? '') ?? [];
+            $requestSelect = array_filter(array_map('trim', $requestSelect));
+            if (!empty($requestSelect)) {
+                $select = array_merge($select, $requestSelect);
+            }
+        }
 
-        // pagination options
-        $group = $request->getGet('group');
-        $withQuery = $request->getGet('withQuery') !== null ?: $defaultOptions->pagination->withQuery;
-        $linksMax = max((int) $request->getGet('links'), $defaultOptions->pagination->linksMax);
-        $page = max((int) $request->getGet('page'), 1);
-        $limit = $request->getGet('limit') ?: $defaultOptions->pagination->limit;
+        // 3. Derive
+        $derive = $options?->derive ?? [];
+        if ($allowAll || in_array('derive', $allowed, true)) {
+            $requestDerive = explode(',', $request->getGet('derive') ?? '') ?? [];
+            $requestDerive = array_filter(array_map('trim', $requestDerive));
+            if (!empty($requestDerive)) {
+                $derive = array_merge($derive, $requestDerive);
+            }
+        }
+
+        // 4. Search
+        $search = $options?->search;
+        if ($allowAll || in_array('search', $allowed, true)) {
+            $search = $request->getGet('search') ?? $search;
+        }
+
+        // 5. Sort (Convert request string into proper SortOptions)
+        $sort = $options?->sort ?? new SortOptions();
+        if ($allowAll || in_array('sort', $allowed, true)) {
+            $requestSort = $request->getGet('sort');
+            if (is_string($requestSort) && $requestSort !== '') {
+                $direction = SortOrder::ASC;
+                $column = $requestSort;
+                if (str_starts_with($requestSort, '-')) {
+                    $direction = SortOrder::DESC;
+                    $column = substr($requestSort, 1);
+                }
+                $sort = new SortOptions(column: $column, direction: $direction);
+            }
+        }
+
+        // 6. Coordinated Pagination
+        $pagination = $options?->pagination ?? new PaginationOptions();
+        if ($allowAll || in_array('pagination', $allowed, true)) {
+            $group = $pagination->group; // Derived from inline code config
+
+            // Dynamic URL parameter names based on group prefixing
+            $pageKey = $group === 'default' ? 'page' : 'page_' . $group;
+            $limitKey = $group === 'default' ? 'limit' : 'limit_' . $group;
+
+            $withQuery = $request->getGet('withQuery') !== null ?: $pagination->withQuery;
+            $linksMax = max((int) $request->getGet('links'), $pagination->linksMax);
+
+            $page = max((int) $request->getGet($pageKey), 1);
+            $limit = $request->getGet($limitKey) ?: $pagination->limit;
+
+            $pagination = new PaginationOptions(
+                limit: (int) $limit,
+                page: (int) $page,
+                linksMax: (int) $linksMax,
+                withQuery: (bool) $withQuery,
+                group: (string) $group
+            );
+        }
 
         return new QueryOptions(
             params: new ParamOptions(
                 params: $params,
                 callbacks: $self->paramCallbacks
             ),
-            pagination: new PaginationOptions(
-                limit: $limit,
-                page: $page,
-                linksMax: $linksMax,
-                withQuery: $withQuery,
-                group: $group,
-            ),
-            select: new SelectOptions(
-                select: $select,
-            ),
+            select: new SelectOptions(select: $select),
+            pagination: $pagination,
+            derive: $derive,
             sort: $sort,
             search: $search,
-            derive: $derive,
+            logger: $options?->logger,
+            first: $options?->first ?? false,
+            allowedCapabilities: $allowed
         );
     }
 
@@ -168,6 +224,7 @@ final class RequestOptionsBuilder
                 if ($fn instanceof Closure) {
                     $output = $fn($key, $value, $isAndSelect ? 'and' : 'or', $callTime);
                 }
+            } catch (\Throwable $e) {
             }
 
             // check if array is of key - value pair

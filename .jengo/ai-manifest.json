@@ -63,7 +63,7 @@
   ],
   "query_builder": {
     "class": "Jengo\\Schema\\Query\\FluentQueryAPI",
-    "description": "Fluent query wrapper constructed via the query() helper. Manages criteria composition, join resolution, sorting, and pagination.",
+    "description": "Fluent query wrapper constructed via the query() helper. Manages criteria composition, join resolution, sorting, and pagination. In OPEN mode, pagination (page and limit) is controlled directly via request parameters. Use paginationGroup() to set the group name and align request keys (e.g. ?page_group=X) without needing paginate() unless setting default fallback limits.",
     "methods": {
       "where": "where(string $column, mixed $value, bool $isOr = false): self (Applies basic filter)",
       "limit": "limit(int $limit): self (Applies query limit and enables pagination)",
