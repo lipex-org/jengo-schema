@@ -266,4 +266,17 @@ final class NewFeaturesTest extends TestCase
         $result = query(UserSchema::class)->search('alice@example.com', ['email'], 'both', false)->get();
         $this->assertCount(1, $result->data);
     }
+
+    public function testOpenModeDefaultLimitWhenPaginationAllowed()
+    {
+        // 1. Without pre-configured limit
+        $query1 = query(UserSchema::class)->open(['pagination']);
+        $result1 = $query1->get();
+        $this->assertSame(15, $result1->pagination->limit);
+
+        // 2. With pre-configured limit
+        $query2 = query(UserSchema::class)->limit(5)->open(['pagination']);
+        $result2 = $query2->get();
+        $this->assertSame(5, $result2->pagination->limit);
+    }
 }

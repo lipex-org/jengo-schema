@@ -76,6 +76,14 @@ final class FluentQueryAPI
     public function open(array $allowedCapabilities = ['pagination']): self
     {
         $this->allowedCapabilities = $allowedCapabilities;
+
+        $allowAll = in_array('*', $allowedCapabilities, true) || in_array('all', $allowedCapabilities, true);
+        if ($allowAll || in_array('pagination', $allowedCapabilities, true)) {
+            if ($this->limit === 0) {
+                $this->limit = 15;
+            }
+        }
+
         return $this->mode(QueryMode::OPEN);
     }
 
