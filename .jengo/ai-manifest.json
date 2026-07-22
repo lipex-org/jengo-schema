@@ -70,6 +70,7 @@
       "page": "page(int $page): self (Specifies pagination page)",
       "paginate": "paginate(int $page, int $perPage = 15, string $group = 'default'): self (Applies page, limit, and configures pagination group for generating links)",
       "paginationGroup": "paginationGroup(string $group): self (Sets custom pagination group used for links)",
+      "search": "search(?string $term, array $fields = [], string $side = 'both', ?bool $caseInsensitive = null): self (Performs an advanced search with custom columns, wildcard direction, and case-sensitivity control)",
       "sortBy": "sortBy(string $column, string|SortOrder $direction = SortOrder::ASC): self",
       "select": "select(array|string $fields): self (Select specific columns)",
       "derive": "derive(array|string $relations): self (Loads specific HasMany/BelongsTo relations)",

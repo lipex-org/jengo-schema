@@ -12,7 +12,7 @@ final class QueryOptions
         public readonly PaginationOptions $pagination = new PaginationOptions(),
         public readonly array $derive = [],
         public readonly SortOptions $sort = new SortOptions(),
-        public readonly ?string $search = null,
+        public readonly SearchOptions $search = new SearchOptions(),
         public readonly ?bool $logger = null,
         public readonly bool $first = false,
         public readonly array $allowedCapabilities = ['pagination'],

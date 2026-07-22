@@ -82,9 +82,12 @@ final class RequestOptionsBuilder
         }
 
         // 4. Search
-        $search = $options?->search;
+        $search = $options?->search ?? new \Jengo\Schema\Query\DTO\SearchOptions();
         if ($allowAll || in_array('search', $allowed, true)) {
-            $search = $request->getGet('search') ?? $search;
+            $searchValue = $request->getGet('search');
+            if ($searchValue !== null && $searchValue !== '') {
+                $search = new \Jengo\Schema\Query\DTO\SearchOptions(value: $searchValue);
+            }
         }
 
         // 5. Sort (Convert request string into proper SortOptions)

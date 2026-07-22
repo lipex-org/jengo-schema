@@ -11,8 +11,10 @@ use Jengo\Schema\Query\DTO\QueryOptions;
 use Jengo\Schema\Query\DTO\QueryResult;
 use Jengo\Schema\Query\DTO\SelectOptions;
 use Jengo\Schema\Query\DTO\SortOptions;
+use Jengo\Schema\Query\DTO\SearchOptions;
 use Jengo\Schema\Query\Enums\QueryMode;
 use Jengo\Schema\Query\Enums\SortOrder;
+use Jengo\Schema\Reflection\SchemaReflector;
 
 final class FluentQueryAPI
 {
@@ -29,7 +31,10 @@ final class FluentQueryAPI
     private int $page = 0;
     private ?string $sortColumn = null;
     private SortOrder $sortDirection = SortOrder::ASC;
-    private ?string $search = null;
+    private ?string $searchTerm = null;
+    private array $searchFields = [];
+    private string $searchSide = 'both';
+    private ?bool $searchCaseInsensitive = null;
     private ?bool $logger = null;
     private QueryMode $mode = QueryMode::INLINE;
     private string $paginationGroup = 'default';
@@ -228,9 +233,12 @@ final class FluentQueryAPI
      * @param mixed $term
      * @return FluentQueryAPI
      */
-    public function search(?string $term): self
+    public function search(?string $term, array $fields = [], string $side = 'both', ?bool $caseInsensitive = null): self
     {
-        $this->search = $term;
+        $this->searchTerm = $term;
+        $this->searchFields = $fields;
+        $this->searchSide = $side;
+        $this->searchCaseInsensitive = $caseInsensitive;
         return $this;
     }
 
@@ -536,15 +544,14 @@ final class FluentQueryAPI
      * Find a record by its primary key.
      *
      * @param mixed $id The primary key value
-     * @param bool $value Whether to return the entity directly instead of QueryResult
-     * @return object|null
+     * @return object|array|null
      */
-    public function find(mixed $id, bool $value = false): object|null
+    public function find(mixed $id): object|array|null
     {
-        $metadata = \Jengo\Schema\Reflection\SchemaReflector::reflect($this->schema);
+        $metadata = SchemaReflector::reflect($this->schema);
         $primaryKeyName = $metadata->primaryKey->name;
 
-        return $this->where($primaryKeyName, $id)->first($value);
+        return $this->where($primaryKeyName, $id)->first(true);
     }
 
     public static function dd(): void
@@ -580,7 +587,12 @@ final class FluentQueryAPI
                 column: $this->sortColumn,
                 direction: $this->sortDirection
             ),
-            search: $this->search,
+            search: new SearchOptions(
+                value: $this->searchTerm,
+                fields: $this->searchFields,
+                side: $this->searchSide,
+                caseInsensitive: $this->searchCaseInsensitive
+            ),
             logger: $this->logger,
             first: $first,
             allowedCapabilities: $this->allowedCapabilities

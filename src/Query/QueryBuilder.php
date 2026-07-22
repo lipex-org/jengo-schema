@@ -14,6 +14,7 @@ use Jengo\Schema\Query\DTO\BuilderResult;
 use Jengo\Schema\Query\DTO\PaginationOptions;
 use Jengo\Schema\Query\DTO\ParamOptions;
 use Jengo\Schema\Query\DTO\QueryOptions;
+use Jengo\Schema\Query\DTO\SearchOptions;
 use Jengo\Schema\Query\DTO\SortOptions;
 use Jengo\Schema\Query\DTO\WhereValue;
 use Jengo\Schema\Support\AliasGenerator;
@@ -101,32 +102,51 @@ final class QueryBuilder
         }
     }
 
-    private static function applySearch(BaseBuilder $builder, Node $node, ?string $search, ): void
+    private static function applySearch(BaseBuilder $builder, Node $node, SearchOptions $search): void
     {
-        if (!$search)
+        if (!$search->value) {
             return;
+        }
 
-        $current = $node;
-
-        foreach ($node->children as $child) {
-            $fields = array_filter(array_map(function (FieldMetadata $f) {
-                if (!$f->searchable) {
-                    return null;
+        $fields = [];
+        if (!empty($search->fields)) {
+            foreach ($node->schema->fields as $f) {
+                if (in_array($f->name, $search->fields, true)) {
+                    $fields[] = $f->name;
                 }
+            }
+            if ($node->schema->primaryKey && in_array($node->schema->primaryKey->name, $search->fields, true)) {
+                $fields[] = $node->schema->primaryKey->name;
+            }
+        } else {
+            foreach ($node->schema->fields as $f) {
+                if ($f->searchable) {
+                    $fields[] = $f->name;
+                }
+            }
+            if ($node->schema->primaryKey && $node->schema->primaryKey->searchable) {
+                $fields[] = $node->schema->primaryKey->name;
+            }
+        }
 
-                return $f->name;
-            }, $current->schema->fields));
+        $alias = AliasGenerator::for($node);
 
-            $alias = AliasGenerator::for($current);
-
+        if (!empty($fields)) {
             $builder->groupStart();
             foreach ($fields as $field) {
-                $builder->orLike(sprintf('%s.%s', $alias, $field), $search, 'both', null, true);
+                $builder->orLike(
+                    sprintf('%s.%s', $alias, $field),
+                    $search->value,
+                    $search->side,
+                    true,
+                    $search->caseInsensitive ?? false
+                );
             }
-
             $builder->groupEnd();
+        }
 
-            $current = $child;
+        foreach ($node->children as $child) {
+            self::applySearch($builder, $child, $search);
         }
     }
 

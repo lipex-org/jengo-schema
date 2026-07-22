@@ -79,10 +79,9 @@ final class NewFeaturesTest extends TestCase
 
         $result = query(UserSchema::class)->find($id2);
 
-        $this->assertInstanceOf(QueryResult::class, $result);
-        $this->assertInstanceOf(User::class, $result->data);
-        $this->assertSame('Bob', $result->data->first_name);
-        $this->assertSame((string) $id2, $result->data->id);
+        $this->assertInstanceOf(User::class, $result);
+        $this->assertSame('Bob', $result->first_name);
+        $this->assertSame((string) $id2, $result->id);
     }
 
     public function testDeeplyNestedHasManyRelationWithEmptyChild()
@@ -225,5 +224,46 @@ final class NewFeaturesTest extends TestCase
         // Cleanup
         $_GET = [];
         request()->setGlobal('get', $_GET);
+    }
+
+    public function testSearchFeatureWithAdvancedOptions()
+    {
+        // Seed users
+        $this->db->table('users')->insert([
+            'first_name' => 'Alice',
+            'last_name' => 'Smith',
+            'email' => 'alice@example.com'
+        ]);
+        $this->db->table('users')->insert([
+            'first_name' => 'Alicia',
+            'last_name' => 'Keys',
+            'email' => 'alicia@example.com'
+        ]);
+        $this->db->table('users')->insert([
+            'first_name' => 'Bob',
+            'last_name' => 'Alice',
+            'email' => 'bob@example.com'
+        ]);
+
+        // 1. Runtime specific fields search: search 'Alice' but ONLY on 'last_name'
+        $result = query(UserSchema::class)->search('Alice', ['last_name'])->get();
+        // Alice Smith (first name matches, ignored), Alicia Keys (no match), Bob Alice (last name matches, returned)
+        $this->assertCount(1, $result->data);
+        $this->assertSame('Bob', $result->data[0]->first_name);
+
+        // 2. Directional search: search 'Alice' with side='none' (exact match)
+        $result = query(UserSchema::class)->search('Alice', ['first_name'], 'none')->get();
+        // Alice Smith matches exactly. Alicia Keys has "Alicia" so it does not match exactly.
+        $this->assertCount(1, $result->data);
+        $this->assertSame('Alice', $result->data[0]->first_name);
+
+        // 3. Directional search: search 'Alic' with side='after' (starts with 'Alic%')
+        $result = query(UserSchema::class)->search('Alic', ['first_name'], 'after')->get();
+        // Alice Smith and Alicia Keys match. Bob Alice does not match because it starts with Bob.
+        $this->assertCount(2, $result->data);
+
+        // 4. Case sensitivity
+        $result = query(UserSchema::class)->search('alice@example.com', ['email'], 'both', false)->get();
+        $this->assertCount(1, $result->data);
     }
 }
