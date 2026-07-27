@@ -102,6 +102,17 @@ final class QueryBuilder
         }
     }
 
+    private static function getNodeRelationPath(Node $node): string
+    {
+        $parts = [];
+        $curr = $node;
+        while ($curr !== null && $curr->edge !== null) {
+            array_unshift($parts, $curr->edge->relation->name);
+            $curr = $curr->parent;
+        }
+        return implode('.', $parts);
+    }
+
     private static function applySearch(BaseBuilder $builder, Node $node, SearchOptions $search): void
     {
         if (!$search->value) {
@@ -109,14 +120,21 @@ final class QueryBuilder
         }
 
         $fields = [];
+        $prefix = self::getNodeRelationPath($node);
+
         if (!empty($search->fields)) {
             foreach ($node->schema->fields as $f) {
-                if (in_array($f->name, $search->fields, true)) {
+                $qualified = $prefix !== '' ? "{$prefix}.{$f->name}" : $f->name;
+                if (in_array($qualified, $search->fields, true)) {
                     $fields[] = $f->name;
                 }
             }
-            if ($node->schema->primaryKey && in_array($node->schema->primaryKey->name, $search->fields, true)) {
-                $fields[] = $node->schema->primaryKey->name;
+            if ($node->schema->primaryKey) {
+                $pkName = $node->schema->primaryKey->name;
+                $qualifiedPk = $prefix !== '' ? "{$prefix}.{$pkName}" : $pkName;
+                if (in_array($qualifiedPk, $search->fields, true)) {
+                    $fields[] = $pkName;
+                }
             }
         } else {
             foreach ($node->schema->fields as $f) {

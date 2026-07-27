@@ -279,4 +279,29 @@ final class NewFeaturesTest extends TestCase
         $result2 = $query2->get();
         $this->assertSame(5, $result2->pagination->limit);
     }
+
+    public function testRelatedTableSearchByDotNotation()
+    {
+        $userId = $this->db->table('users')->insert([
+            'first_name' => 'Charlie',
+            'last_name' => 'Brown',
+            'email' => 'charlie@example.com'
+        ]);
+
+        $this->db->table('user_files')->insert([
+            'name' => 'charlie_report.pdf',
+            'size' => 2048.0,
+            'path' => '/docs/charlie_report.pdf',
+            'user_id' => $userId
+        ]);
+
+        $result = query(UserSchema::class)
+            ->derive('files')
+            ->search('report', ['files.name'])
+            ->get();
+
+        $this->assertCount(1, $result->data);
+        $this->assertSame('Charlie', $result->data[0]->first_name);
+        $this->assertSame('charlie_report.pdf', $result->data[0]->files[0]->name);
+    }
 }
