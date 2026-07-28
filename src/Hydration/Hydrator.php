@@ -7,6 +7,7 @@ namespace Jengo\Schema\Hydration;
 use CodeIgniter\Entity\Entity;
 use Jengo\Schema\Debug\QueryLogger;
 use Jengo\Schema\Graph\Node;
+use Jengo\Schema\Hydration\DTO\PropertyType;
 use Jengo\Schema\Query\DTO\BuilderResult;
 use Jengo\Schema\Query\DTO\PaginationData;
 use Jengo\Schema\Query\DTO\PaginationLinksData;
@@ -19,19 +20,16 @@ use Jengo\Schema\Support\PaginationUtils;
 
 final class Hydrator
 {
-    private array $data = [];
-    private null|array|Entity $resolvedData = null;
-    private ?int $total = null;
-
+    private array $data                     = [];
+    private array|Entity|null $resolvedData = null;
+    private ?int $total                     = null;
     private QueryOptions $options;
     private QueryPlan $plan;
     private Node $node;
-
     private static Hydrator $self;
-
-    private $grouped = [];
-
+    private $grouped    = [];
     private array $rows = [];
+
     /**
      * Hydrate flat DB rows into nested structure
      */
@@ -39,22 +37,22 @@ final class Hydrator
     {
         $self = new self();
 
-        $self->total = $builderResult->total;
+        $self->total   = $builderResult->total;
         $self->options = $options ?? new QueryOptions();
-        $self->plan = $plan;
-        $self->node = $rootNode;
-        $self->rows = $builderResult->rows;
+        $self->plan    = $plan;
+        $self->node    = $rootNode;
+        $self->rows    = $builderResult->rows;
 
         self::$self = $self;
 
         $self->data = self::hydrateNode($rootNode, $plan);
 
         $pl = [
-            'where' => $plan->where,
-            'aliases' => $plan->aliases,
-            'selects' => $plan->selects,
+            'where'      => $plan->where,
+            'aliases'    => $plan->aliases,
+            'selects'    => $plan->selects,
             'selectsRaw' => $plan->selectsRaw,
-            'joins' => $plan->joins,
+            'joins'      => $plan->joins,
         ];
 
         QueryLogger::add('options', ArrayUtils::toArray($options));
@@ -67,7 +65,6 @@ final class Hydrator
 
     /**
      * Returns the query result from the request
-     * @return QueryResult
      */
     private function finish(): QueryResult
     {
@@ -80,7 +77,6 @@ final class Hydrator
 
     /**
      * Resolves total count for the query(this is for all elements in db being paginated)
-     * @return int
      */
     private function resolveTotal(): int
     {
@@ -93,7 +89,6 @@ final class Hydrator
 
     /**
      * Resolves data based on whether request is for first element
-     * @return array|object|null
      */
     private function resolveData(): array|object|null
     {
@@ -102,14 +97,15 @@ final class Hydrator
         }
 
         $result = [];
+
         foreach ($this->data as $d) {
-            if (!is_array($d)) {
+            if (! is_array($d)) {
                 continue;
             }
             $result[] = EntityFactory::make($this->node, $d, $this->options->entityClass);
         }
 
-        $data = $this->options->first ? $result[0] ?? null : $result;
+        $data               = $this->options->first ? $result[0] ?? null : $result;
         $this->resolvedData = $data;
 
         return $data;
@@ -117,17 +113,16 @@ final class Hydrator
 
     /**
      * Resolves count for the elements returned
-     * @return int
      */
     private function resolveCount(): int
     {
         $data = $this->resolveData();
 
-        if (!$data) {
+        if (! $data) {
             return 0;
         }
 
-        if (is_array($data) && !$this->options->first) {
+        if (is_array($data) && ! $this->options->first) {
             return count($data);
         }
 
@@ -136,11 +131,10 @@ final class Hydrator
 
     /**
      * Resolves pagination for the query
-     * @return PaginationData
      */
     private function resolvePagination(): PaginationData
     {
-        $page = $this->options->pagination->page;
+        $page  = $this->options->pagination->page;
         $limit = $this->options->pagination->limit;
         $total = $this->resolveTotal();
 
@@ -148,11 +142,11 @@ final class Hydrator
             data: new PaginationLinksData(
                 page: $page,
                 limit: $limit,
-                total: $total
+                total: $total,
             ),
             number: $this->options->pagination->linksMax,
             group: $this->options->pagination->group,
-            withQuery: $this->options->pagination->withQuery
+            withQuery: $this->options->pagination->withQuery,
         );
 
         return new PaginationData(
@@ -169,13 +163,14 @@ final class Hydrator
     private static function hydrateNode(Node $node, QueryPlan $plan, ?array $rows = null): array
     {
         $alias = AliasGenerator::for($node);
-        $pk = $node->schema->primaryKey;
+        $pk    = $node->schema->primaryKey;
         $pkCol = "{$alias}__{$pk->name}";
         $rows ??= self::$self->rows;
 
         $grouped = [];
 
         $keyAlt = 0;
+
         foreach ($rows as $row) {
             if (array_key_exists($pkCol, $row)) {
                 $pkVal = $row[$pkCol];
@@ -183,7 +178,7 @@ final class Hydrator
                     continue;
                 }
                 $pkVal = self::castValueToType($pkVal, $pk->type);
-                $key = 'pk_' . $pkVal;
+                $key   = 'pk_' . $pkVal;
             } else {
                 $key = 'alt_' . $keyAlt;
                 $keyAlt++;
@@ -200,14 +195,14 @@ final class Hydrator
             $pkValue = $groupRows[0][$pkCol] ?? null;
 
             if ($pkValue !== null) {
-                $pkValue = self::castValueToType($pkValue, $pk->type);
+                $pkValue           = self::castValueToType($pkValue, $pk->type);
                 $record[$pk->name] = $pkValue;
             }
 
             foreach ($node->schema->fields as $field) {
                 $selects = $plan->selectsRaw[$alias] ?? [];
 
-                if (!in_array($field->name, $selects, true)) {
+                if (! in_array($field->name, $selects, true)) {
                     continue;
                 }
 
@@ -242,7 +237,7 @@ final class Hydrator
     /**
      * Automatically cast database scalar values to match property union types.
      */
-    private static function castValueToType(mixed $value, \Jengo\Schema\Hydration\DTO\PropertyType $propertyType): mixed
+    private static function castValueToType(mixed $value, PropertyType $propertyType): mixed
     {
         if ($value === null) {
             return null;
@@ -253,12 +248,12 @@ final class Hydrator
             return $value;
         }
 
-        $currentType = gettype($value);
+        $currentType    = gettype($value);
         $normalizedType = match ($currentType) {
-            'double' => 'float',
+            'double'  => 'float',
             'integer' => 'int',
             'boolean' => 'bool',
-            default => $currentType
+            default   => $currentType,
         };
 
         if (in_array($normalizedType, $allowedTypes, true)) {
@@ -272,16 +267,19 @@ final class Hydrator
                         return (int) $value;
                     }
                     break;
+
                 case 'string':
                     if (is_scalar($value) || (is_object($value) && method_exists($value, '__toString'))) {
                         return (string) $value;
                     }
                     break;
+
                 case 'float':
                     if (is_scalar($value)) {
                         return (float) $value;
                     }
                     break;
+
                 case 'bool':
                     return (bool) $value;
             }

@@ -6,7 +6,9 @@ namespace Tests\Unit\Graph;
 
 use Tests\TestCase;
 
+/**
+ * @internal
+ */
 class GraphTestCase extends TestCase
 {
-
 }

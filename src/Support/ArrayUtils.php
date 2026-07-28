@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Jengo\Schema\Support;
 
+use Throwable;
+
 final class ArrayUtils
 {
     /**
@@ -34,10 +36,10 @@ final class ArrayUtils
     public static function set(array &$array, string $path, mixed $value): void
     {
         $keys = explode('.', $path);
-        $ref = &$array;
+        $ref  = &$array;
 
         foreach ($keys as $key) {
-            if (!isset($ref[$key]) || !is_array($ref[$key])) {
+            if (! isset($ref[$key]) || ! is_array($ref[$key])) {
                 $ref[$key] = [];
             }
             $ref = &$ref[$key];
@@ -84,12 +86,11 @@ final class ArrayUtils
         return $result;
     }
 
-
     public static function toArray(mixed $val): array
     {
         try {
             return json_decode(json_encode($val), true);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             return [];
         }
     }

@@ -12,14 +12,14 @@ final class CreateUsers extends Migration
     {
         $this->forge->addField([
             'id' => [
-                'type' => 'INT',
-                'unsigned' => true,
+                'type'           => 'INT',
+                'unsigned'       => true,
                 'auto_increment' => true,
             ],
 
             'first_name' => [
                 'type' => 'TEXT',
-                'null' => false
+                'null' => false,
             ],
 
             'last_name' => [
@@ -27,18 +27,18 @@ final class CreateUsers extends Migration
             ],
 
             'email' => [
-                'type' => 'VARCHAR',
+                'type'       => 'VARCHAR',
                 'constraint' => 100,
             ],
 
             'created_at' => [
                 'type' => 'DATETIME',
-                'null' => true
+                'null' => true,
             ],
 
             'updated_at' => [
                 'type' => 'DATETIME',
-                'null' => true
+                'null' => true,
             ],
         ]);
 

@@ -12,14 +12,17 @@ use Tests\Support\Models\ProfileModel;
 use Tests\Support\Schemas\ProfileSchema;
 use Tests\Support\Schemas\UserSchema;
 
+/**
+ * @internal
+ */
 final class ProfileSchemaTest extends ReflectorTestCase
 {
     public function testProfileSchema(): void
     {
-        $schema = SchemaReflector::reflect(ProfileSchema::class);
-        $fieldsArray = ArrayUtils::toArray($schema->fields);
+        $schema         = SchemaReflector::reflect(ProfileSchema::class);
+        $fieldsArray    = ArrayUtils::toArray($schema->fields);
         $relationsArray = ArrayUtils::toArray($schema->relations);
-        $fieldNames = array_column($fieldsArray, 'name');
+        $fieldNames     = array_column($fieldsArray, 'name');
 
         // classes
         $this->assertSame(ProfileSchema::class, $schema->schemaClass);
@@ -32,7 +35,7 @@ final class ProfileSchemaTest extends ReflectorTestCase
         $this->assertFalse($schema->primaryKey->derived);
 
         // fields
-        $this->assertEquals(8, count($schema->fields));
+        $this->assertCount(8, $schema->fields);
         $this->assertContains('updated_at', $fieldNames);
         $this->assertContains('github_handle', $fieldNames);
         $this->assertContains('address', $fieldNames);
@@ -83,10 +86,10 @@ final class ProfileSchemaTest extends ReflectorTestCase
         // user_id
         $relation = $this->getRelation('user', $relationsArray);
 
-        $this->assertEquals(RelationMetadata::BELONGS_TO, $relation->type);
+        $this->assertSame(RelationMetadata::BELONGS_TO, $relation->type);
         $this->assertFalse($relation->many);
-        $this->assertEquals(UserSchema::class, $relation->schemaClass);
-        $this->assertEquals('user_id', $relation->fromField);
+        $this->assertSame(UserSchema::class, $relation->schemaClass);
+        $this->assertSame('user_id', $relation->fromField);
         $this->assertEmpty($relation->select);
         $this->assertEmpty($relation->toField);
     }

@@ -16,8 +16,8 @@ final class UserModel extends Model
     {
         return [
             'first_name' => $generator->firstName(),
-            'last_name' => $generator->lastName(),
-            'email' => $generator->email(),
+            'last_name'  => $generator->lastName(),
+            'email'      => $generator->email(),
             'created_at' => Time::now()->toDateTimeString(),
             'updated_at' => Time::now()->toDateTimeString(),
         ];

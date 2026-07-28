@@ -11,7 +11,7 @@ final class PaginationData
         public int $limit,
         public int $total,
         /**
-         * @var PaginationLink[] $links
+         * @var list<PaginationLink> $links
          */
         public array $links = [],
     ) {

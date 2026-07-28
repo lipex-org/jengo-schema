@@ -17,7 +17,6 @@ use RuntimeException;
 final class QueryPlan
 {
     public Node $root;
-
     public QueryOptions $options;
 
     /**
@@ -42,43 +41,39 @@ final class QueryPlan
 
     /**
      * Where params
-     * @var array
      */
     public array $where = [];
 
     /**
      * Where params
+     *
      * @var array
      */
     public string $whereMode = 'and';
 
     /**
      * Sorting info
-     * @var SortOptions
      */
     public SortOptions $sort;
 
     /**
      * Limit of elements
-     * @var int
      */
     public int $limit;
 
     /**
      * Offset to start from
-     * @var int
      */
     public int $offset;
 
     /**
      * Current page
-     * @var int
      */
     public int $page;
 
     public function __construct(Node $root, QueryOptions $options)
     {
-        $this->root = $root;
+        $this->root    = $root;
         $this->options = $options;
 
         $this->init();
@@ -87,10 +82,10 @@ final class QueryPlan
 
     private function init(): void
     {
-        $this->page = $this->options->pagination->page;
-        $this->limit = $this->options->pagination->limit;
+        $this->page   = $this->options->pagination->page;
+        $this->limit  = $this->options->pagination->limit;
         $this->offset = ($this->page - 1) * $this->limit;
-        $this->sort = $this->options->sort;
+        $this->sort   = $this->options->sort;
     }
 
     public static function fromGraph(RelationshipGraph $graph, QueryOptions $options)
@@ -102,7 +97,7 @@ final class QueryPlan
     {
         $path[] = $node->edge?->relation->name ?? 'root';
 
-        $alias = AliasGenerator::for($node);
+        $alias                              = AliasGenerator::for($node);
         $this->aliases[implode('.', $path)] = $alias;
 
         if ($isRoot) {
@@ -116,6 +111,7 @@ final class QueryPlan
         if ($isRoot) {
             $this->attachWhere();
         }
+
         // Recurse into children
         foreach ($node->children as $child) {
             $this->generatePlan($child, $path, false);
@@ -128,16 +124,16 @@ final class QueryPlan
 
         $availableFields = array_column([
             ...ArrayUtils::toArray($this->root->schema->fields),
-            ArrayUtils::toArray($this->root->schema->primaryKey)
+            ArrayUtils::toArray($this->root->schema->primaryKey),
         ], 'name');
 
         if ($selects) {
             foreach ($selects as $field) {
-                if (!in_array($field, $availableFields)) {
-                    throw new RuntimeException("Select field $field must be present in {$this->root->schema->schemaClass}");
+                if (! in_array($field, $availableFields, true)) {
+                    throw new RuntimeException("Select field {$field} must be present in {$this->root->schema->schemaClass}");
                 }
 
-                $this->selects[$alias][] = self::getSelectStr($field, $alias);
+                $this->selects[$alias][]    = self::getSelectStr($field, $alias);
                 $this->selectsRaw[$alias][] = $field;
             }
         } else {
@@ -147,27 +143,27 @@ final class QueryPlan
 
     private function attachSelects(Node $node, string $alias): void
     {
-        $fields = [];
+        $fields    = [];
         $rawFields = [];
 
         // check if selects for the relation exists
         $relationSelects = $node->edge?->relation->select;
-        $pk = $node->schema->primaryKey;
+        $pk              = $node->schema->primaryKey;
 
-        if (!empty($relationSelects)) {
+        if (! empty($relationSelects)) {
             $primaryKeyAttached = false;
-            $rawFieldNames = [
+            $rawFieldNames      = [
                 ...array_column(ArrayUtils::toArray($node->schema->fields), 'name'),
-                $pk->name
+                $pk->name,
             ];
 
             foreach ($relationSelects as $select) {
                 // check if valid schema field
-                if (!in_array($select, $rawFieldNames)) {
-                    throw new RuntimeException("Select field $select must be present in {$node->schema->schemaClass}");
+                if (! in_array($select, $rawFieldNames, true)) {
+                    throw new RuntimeException("Select field {$select} must be present in {$node->schema->schemaClass}");
                 }
 
-                $fields[] = self::getSelectStr($select, $alias);
+                $fields[]    = self::getSelectStr($select, $alias);
                 $rawFields[] = $select;
 
                 if ($select === $pk->name) {
@@ -175,34 +171,36 @@ final class QueryPlan
                 }
             }
 
-            if (!$primaryKeyAttached) {
+            if (! $primaryKeyAttached) {
                 self::attachPK($pk, $alias, $fields, $rawFields);
             }
 
             // attach and return
-            $this->selects[$alias] = $fields;
+            $this->selects[$alias]    = $fields;
             $this->selectsRaw[$alias] = $rawFields;
+
             return;
         }
 
         foreach ($node->schema->fields as $field) {
-            if ($field->derived)
+            if ($field->derived) {
                 continue;
+            }
 
-            $fields[] = self::getSelectStr($field->name, $alias);
+            $fields[]    = self::getSelectStr($field->name, $alias);
             $rawFields[] = $field->name;
         }
 
         // include primary key
         self::attachPK($pk, $alias, $fields, $rawFields);
 
-        $this->selects[$alias] = $fields;
+        $this->selects[$alias]    = $fields;
         $this->selectsRaw[$alias] = $rawFields;
     }
 
     private function attachWhere(): void
     {
-        $this->where = $this->options->params->params;
+        $this->where     = $this->options->params->params;
         $this->whereMode = $this->options->params->isOr ? 'or' : 'and';
     }
 
@@ -213,13 +211,13 @@ final class QueryPlan
 
     private static function attachPK(FieldMetadata $pk, string $alias, array &$fields, array &$rawFields): void
     {
-        $fields[] = self::getSelectStr($pk->name, $alias);
+        $fields[]    = self::getSelectStr($pk->name, $alias);
         $rawFields[] = $pk->name;
     }
 
     private function attachJoins(Node $node, string $alias): void
     {
-        if (!$node->parent) { // checks for root node
+        if (! $node->parent) { // checks for root node
             return;
         }
 
@@ -229,9 +227,9 @@ final class QueryPlan
         $parentAlias = AliasGenerator::for($node->parent);
 
         $this->joins[$alias] = [
-            'table' => QueryUtils::resolveTableFromSchema($node->schema) . " $alias",
-            'cond' => "{$parentAlias}.{$fk} = {$alias}.{$pk}",
-            'type' => 'left'
+            'table' => QueryUtils::resolveTableFromSchema($node->schema) . " {$alias}",
+            'cond'  => "{$parentAlias}.{$fk} = {$alias}.{$pk}",
+            'type'  => 'left',
         ];
     }
 }

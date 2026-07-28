@@ -10,20 +10,20 @@ class CreateProfilesTable extends Migration
     {
         $this->forge->addField([
             'id' => [
-                'type' => 'INT',
-                'constraint' => 11,
-                'unsigned' => true,
+                'type'           => 'INT',
+                'constraint'     => 11,
+                'unsigned'       => true,
                 'auto_increment' => true,
             ],
             'user_id' => [
-                'type' => 'INT',
+                'type'       => 'INT',
                 'constraint' => 11,
-                'unsigned' => true,
+                'unsigned'   => true,
             ],
             'phone' => [
-                'type' => 'VARCHAR',
+                'type'       => 'VARCHAR',
                 'constraint' => '20',
-                'null' => true,
+                'null'       => true,
             ],
             'address' => [
                 'type' => 'TEXT',
@@ -34,14 +34,14 @@ class CreateProfilesTable extends Migration
                 'null' => true,
             ],
             'avatar' => [
-                'type' => 'VARCHAR',
+                'type'       => 'VARCHAR',
                 'constraint' => '255',
-                'null' => true,
+                'null'       => true,
             ],
             'github_handle' => [
-                'type' => 'VARCHAR',
+                'type'       => 'VARCHAR',
                 'constraint' => '100',
-                'null' => true,
+                'null'       => true,
             ],
             'updated_at' => [
                 'type' => 'DATETIME',

@@ -6,7 +6,9 @@ namespace Tests\Unit\Query;
 
 use Tests\TestCase;
 
+/**
+ * @internal
+ */
 class QueryTestCase extends TestCase
 {
-
 }

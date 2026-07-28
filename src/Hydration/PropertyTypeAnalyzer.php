@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Jengo\Schema\Hydration;
 
 use Jengo\Schema\Hydration\DTO\PropertyType;
+use ReflectionIntersectionType;
 use ReflectionNamedType;
 use ReflectionProperty;
 use ReflectionUnionType;
-use ReflectionIntersectionType;
 
 class PropertyTypeAnalyzer
 {
@@ -20,16 +20,16 @@ class PropertyTypeAnalyzer
             return new PropertyType(['mixed'], true);
         }
 
-        $types = [];
+        $types      = [];
         $allowsNull = $reflectionType->allowsNull();
 
         if ($reflectionType instanceof ReflectionNamedType) {
             $types[] = $reflectionType->getName();
         } else {
             // Handles Union and Intersection types
-            /** @var ReflectionUnionType|ReflectionIntersectionType $reflectionType */
+            /** @var ReflectionIntersectionType|ReflectionUnionType $reflectionType */
             foreach ($reflectionType->getTypes() as $subType) {
-                $types[] = $subType->__tostring();
+                $types[] = $subType->__toString();
             }
         }
 

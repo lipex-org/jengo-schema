@@ -4,20 +4,23 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use Jengo\Schema\Query\Query;
+use Jengo\Schema\Query\DTO\PaginationOptions;
+use Jengo\Schema\Query\DTO\ParamOptions;
 use Jengo\Schema\Query\DTO\QueryOptions;
 use Jengo\Schema\Query\DTO\QueryResult;
-use Jengo\Schema\Query\DTO\ParamOptions;
-use Jengo\Schema\Query\DTO\PaginationOptions;
 use Jengo\Schema\Query\Enums\QueryMode;
+use Jengo\Schema\Query\Query;
 use Tests\Support\Entity\UserFile;
 use Tests\Support\Schemas\UserFileSchema;
 use Tests\Support\Schemas\UserSchema;
 use Tests\TestCase;
 
+/**
+ * @internal
+ */
 final class QueryRunTest extends TestCase
 {
-    public function setUp(): void
+    protected function setUp(): void
     {
         $this->fill = false;
 
@@ -33,29 +36,29 @@ final class QueryRunTest extends TestCase
         // Seed 1 user with 1 file
         $userId = $this->db->table('users')->insert([
             'first_name' => 'Carleton',
-            'last_name' => 'Krajcik',
-            'email' => 'emmerich.rory@yahoo.com'
+            'last_name'  => 'Krajcik',
+            'email'      => 'emmerich.rory@yahoo.com',
         ]);
 
         $fileId = $this->db->table('user_files')->insert([
-            'name' => 'Et.',
-            'size' => 5.6733,
-            'path' => 'Qui optio.',
-            'user_id' => $userId
+            'name'    => 'Et.',
+            'size'    => 5.6733,
+            'path'    => 'Qui optio.',
+            'user_id' => $userId,
         ]);
 
         $options = new QueryOptions(
             params: new ParamOptions(['id' => $fileId]),
             derive: ['user.files'],
             first: true,
-            logger: true
+            logger: true,
         );
 
         $result = Query::run(UserFileSchema::class, $options, QueryMode::INLINE);
 
         $this->assertInstanceOf(QueryResult::class, $result);
 
-        //dump_query();
+        // dump_query();
 
         // Assert Data Structure for 'first'
         $data = $result->data;
@@ -77,8 +80,8 @@ final class QueryRunTest extends TestCase
     {
         $this->db->table('users')->insert([
             'first_name' => 'Carleton',
-            'last_name' => 'Krajcik',
-            'email' => 'emmerich.rory@yahoo.com'
+            'last_name'  => 'Krajcik',
+            'email'      => 'emmerich.rory@yahoo.com',
         ]);
 
         // Seed multiple files
@@ -89,7 +92,7 @@ final class QueryRunTest extends TestCase
 
         $options = new QueryOptions(
             pagination: new PaginationOptions(limit: 10),
-            first: false
+            first: false,
         );
 
         $result = Query::run(UserFileSchema::class, $options, QueryMode::INLINE);
@@ -113,12 +116,12 @@ final class QueryRunTest extends TestCase
         $this->tearDown();
         $this->db->table('users')->insert([
             'first_name' => 'John',
-            'last_name' => 'Doe',
-            'email' => 'john@example.com'
+            'last_name'  => 'Doe',
+            'email'      => 'john@example.com',
         ]);
 
         $options = new QueryOptions(first: true, logger: true);
-        $result = Query::run(UserSchema::class, $options);
+        $result  = Query::run(UserSchema::class, $options);
 
         // 'full_name' is a #[Computed] field in UserSchema
         $this->assertSame('John Doe', $result->data->full_name);

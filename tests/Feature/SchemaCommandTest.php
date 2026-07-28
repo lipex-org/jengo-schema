@@ -4,17 +4,21 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use Config\Database;
 use Tests\TestCase;
 
+/**
+ * @internal
+ */
 final class SchemaCommandTest extends TestCase
 {
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
         $this->cleanFileSystem();
     }
 
-    public function tearDown(): void
+    protected function tearDown(): void
     {
         parent::tearDown();
         $this->cleanFileSystem();
@@ -22,10 +26,10 @@ final class SchemaCommandTest extends TestCase
 
     public function testSchemaGenerateCommand(): void
     {
-        $forge = \Config\Database::forge('tests');
+        $forge = Database::forge('tests');
         $forge->addField([
-            'id' => ['type' => 'INTEGER', 'auto_increment' => true],
-            'title' => ['type' => 'VARCHAR', 'constraint' => 255],
+            'id'      => ['type' => 'INTEGER', 'auto_increment' => true],
+            'title'   => ['type' => 'VARCHAR', 'constraint' => 255],
             'user_id' => ['type' => 'INTEGER', 'null' => true],
         ]);
         $forge->addPrimaryKey('id');
@@ -41,7 +45,7 @@ final class SchemaCommandTest extends TestCase
         $this->assertStringContainsString('public int $id;', $content);
         $this->assertStringContainsString('public string $title;', $content);
 
-        $forge = \Config\Database::forge('tests');
+        $forge = Database::forge('tests');
         $forge->dropTable('temp_test_table', true);
     }
 

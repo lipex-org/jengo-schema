@@ -15,13 +15,13 @@ final class ProfileModel extends Model
     public function fake(Generator $generator): array
     {
         return [
-            'user_id' => $generator->unique()->numberBetween(1, 10),
-            'phone' => $generator->phoneNumber(),
-            'address' => $generator->address(),
-            'avatar' => $generator->url(),
-            'bio' => $generator->text(16),
+            'user_id'       => $generator->unique()->numberBetween(1, 10),
+            'phone'         => $generator->phoneNumber(),
+            'address'       => $generator->address(),
+            'avatar'        => $generator->url(),
+            'bio'           => $generator->text(16),
             'github_handle' => $generator->text(16),
-            'updated_at' => Time::now()->toDateTimeString(),
+            'updated_at'    => Time::now()->toDateTimeString(),
         ];
     }
 }

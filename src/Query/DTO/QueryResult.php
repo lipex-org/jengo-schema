@@ -9,8 +9,8 @@ final class QueryResult
     public function __construct(
         public array|object|null $data,
         public int $count,
-        public PaginationData|null $pagination = null,
+        public ?PaginationData $pagination = null,
     ) {
-        # code...
+        // code...
     }
 }

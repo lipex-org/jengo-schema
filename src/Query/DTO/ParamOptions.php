@@ -7,11 +7,17 @@ namespace Jengo\Schema\Query\DTO;
 final class ParamOptions
 {
     public function __construct(
-        /** @var list<string>|list<array> */
+        /**
+         * @var list<array>|list<string>
+         */
         public readonly array $params = [],
-        /** @var list<string>|list<array> */
+        /**
+         * @var list<array>|list<string>
+         */
         public readonly array $whereNotInParams = [],
-        /** @var callable[] */
+        /**
+         * @var list<callable>
+         */
         public readonly array $callbacks = [],
         public readonly bool $isOr = false,
     ) {

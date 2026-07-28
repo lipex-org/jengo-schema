@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Support\Schemas;
 
-use CodeIgniter\I18n\Time;
 use Jengo\Schema\Attributes\Field;
 use Jengo\Schema\Attributes\Model;
 use Jengo\Schema\Attributes\PrimaryKey;
@@ -28,10 +27,8 @@ final class ProfileSchema
     #[Field(cast: Cast::STRING)]
     public string $avatar;
 
-    public ?string $phone = null;
-
-    public ?string $address = null;
-
+    public ?string $phone         = null;
+    public ?string $address       = null;
     public ?string $github_handle = null;
 
     #[Field(cast: Cast::DATETIME)]
@@ -39,7 +36,7 @@ final class ProfileSchema
 
     #[BelongsTo(
         UserSchema::class,
-        'user_id'
+        'user_id',
     )]
     public $user;
 }

@@ -42,7 +42,7 @@ final class OptionsResolver
             logger: $options->logger ?? $config->logger,
             first: $options->first,
             allowedCapabilities: $options->allowedCapabilities,
-            entityClass: $options->entityClass
+            entityClass: $options->entityClass,
         );
     }
 
@@ -52,31 +52,31 @@ final class OptionsResolver
 
     private static function resolveParams(
         ParamOptions $params,
-        SchemaConfig $config
+        SchemaConfig $config,
     ): ParamOptions {
         return new ParamOptions(
             params: $params->params,
             callbacks: array_merge(
                 $config->whereCallbacks,
-                $params->callbacks
+                $params->callbacks,
             ),
             whereNotInParams: $params->whereNotInParams,
-            isOr: $params->isOr
+            isOr: $params->isOr,
         );
     }
 
     private static function resolveSelect(
-        SelectOptions $select
+        SelectOptions $select,
     ): SelectOptions {
         // Select has no config-level defaults (by design)
         return new SelectOptions(
-            select: $select->select
+            select: $select->select,
         );
     }
 
     private static function resolvePagination(
         PaginationOptions $pagination,
-        SchemaConfig $config
+        SchemaConfig $config,
     ): PaginationOptions {
         $default = $config->paginationOptions;
 
@@ -91,13 +91,13 @@ final class OptionsResolver
 
     private static function resolveSort(
         SortOptions $sort,
-        SchemaConfig $config
+        SchemaConfig $config,
     ): SortOptions {
         $default = $config->sortOptions;
 
         return new SortOptions(
             column: $sort->column ?: $default->column,
-            direction: $sort->direction ?? $default->direction
+            direction: $sort->direction ?? $default->direction,
         );
     }
 }

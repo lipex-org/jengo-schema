@@ -13,18 +13,18 @@ use Jengo\Schema\Query\QueryPlan;
 use Jengo\Schema\Support\AliasGenerator;
 use Jengo\Schema\Support\ArrayUtils;
 use RuntimeException;
+use stdClass;
+use Throwable;
 
 final class ComputedValueResolver
 {
     public static function resolve(Node $node, array &$record): void
     {
-        /**
-         * @var QUeryPlan $plan
-         */
-        $plan = Query::get(QueryPlan::class);
-        $schema = $node->schema;
-        $schemaClass = class_exists($schema->schemaClass) ? new $schema->schemaClass() : new \stdClass();
-        $alias = AliasGenerator::for($node);
+        /** @var QueryPlan $plan */
+        $plan                 = Query::get(QueryPlan::class);
+        $schema               = $node->schema;
+        $schemaClass          = class_exists($schema->schemaClass) ? new $schema->schemaClass() : new stdClass();
+        $alias                = AliasGenerator::for($node);
         $allViableDependecies = array_merge(
             $plan->selectsRaw[$alias] ?? [],
             self::resolveColumnsFromAliases(),
@@ -34,9 +34,7 @@ final class ComputedValueResolver
         // this shuold be in form of schema, field, computed method, dependencies, cast type and resons for skipping if any
         $skippedComputations = [];
 
-        /*
-         * STEP 1: Assign base (non-derived) fields safely
-         */
+        // STEP 1: Assign base (non-derived) fields safely
         foreach ($schema->fields as $field) {
             if ($field->derived) {
                 continue;
@@ -44,7 +42,7 @@ final class ComputedValueResolver
 
             $name = $field->name;
 
-            if (!array_key_exists($name, $record)) {
+            if (! array_key_exists($name, $record)) {
                 continue;
             }
 
@@ -56,9 +54,9 @@ final class ComputedValueResolver
             }
 
             // Validate assignability
-            if (!$field->type->canAccept($value)) {
+            if (! $field->type->canAccept($value)) {
                 throw new RuntimeException(
-                    "Type mismatch on field '{$name}' for schema '{$schema->schemaClass}'"
+                    "Type mismatch on field '{$name}' for schema '{$schema->schemaClass}'",
                 );
             }
 
@@ -68,7 +66,7 @@ final class ComputedValueResolver
         foreach ($schema->relations as $relation) {
             $name = $relation->name;
 
-            if (!array_key_exists($name, $record)) {
+            if (! array_key_exists($name, $record)) {
                 continue;
             }
 
@@ -76,18 +74,17 @@ final class ComputedValueResolver
 
             try {
                 $schemaClass->{$name} = $value;
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 throw new RuntimeException(
                     "Failed assigning relation '{$name}' on schema '{$schema->schemaClass}'",
-                    previous: $e
+                    previous: $e,
                 );
             }
         }
 
-        /*
-         * STEP 2: Resolve computed fields
-         */
+        // STEP 2: Resolve computed fields
         $current = null;
+
         foreach ($schema->computed as $computed) {
             try {
                 $current = $computed;
@@ -96,19 +93,20 @@ final class ComputedValueResolver
 
                 if ($dependencyCheck->status) {
                     $skippedComputations[] = [
-                        'field' => $computed->name,
+                        'field'  => $computed->name,
                         'reason' => 'Missing dependencies: ' . implode(', ', $dependencyCheck->missingDeps),
                     ];
+
                     continue;
                 }
 
                 // Inject dependant fields
                 foreach ($computed->dependants as $dep) {
-                    $fieldDep = $schema->getField($dep);
+                    $fieldDep    = $schema->getField($dep);
                     $computedDep = $schema->getComputed($dep);
                     $relationDep = $schema->getRelation($dep);
 
-                    if (!\array_key_exists($dep, $record) || (!$fieldDep && !$relationDep && !$computedDep)) {
+                    if (! \array_key_exists($dep, $record) || (! $fieldDep && ! $relationDep && ! $computedDep)) {
                         continue;
                     }
 
@@ -132,18 +130,17 @@ final class ComputedValueResolver
 
                 // Now compute the value itself
                 self::computeValue($schemaClass, $record, $computed);
-
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 throw new RuntimeException(
                     "Failed computing '{$computed->name}' on schema '{$schema->schemaClass}'",
-                    previous: $e
+                    previous: $e,
                 );
             }
         }
 
         QueryLogger::append('computed_value_resolution', [
-            'schema' => $schema->schemaClass,
-            'record' => $record,
+            'schema'               => $schema->schemaClass,
+            'record'               => $record,
             'skipped_computations' => $skippedComputations,
         ]);
     }
@@ -156,7 +153,7 @@ final class ComputedValueResolver
         if ($computed->cast !== null) {
             $computedValue = ValueCaster::cast(
                 $computedValue,
-                $computed->cast->value
+                $computed->cast->value,
             );
         }
 
@@ -165,13 +162,12 @@ final class ComputedValueResolver
 
     private static function resolveColumnsFromAliases(): array
     {
-        /**
-         * @var QueryPlan $plan
-         */
-        $plan = Query::get(QueryPlan::class);
+        /** @var QueryPlan $plan */
+        $plan    = Query::get(QueryPlan::class);
         $aliases = array_keys($plan->aliases);
 
         $columns = [];
+
         foreach ($aliases as $alias) {
             $value = str_replace(['.', 'root'], ['', ''], $alias);
 
@@ -179,6 +175,7 @@ final class ComputedValueResolver
                 $columns[] = $value;
             }
         }
+
         return $columns;
     }
 
@@ -186,15 +183,15 @@ final class ComputedValueResolver
     {
         $dependencies = $field->dependants;
 
-        $missingDeps = array_filter($dependencies, function ($dep) use ($allViableDependecies, &$checkedDep) {
-            return !in_array($dep, $allViableDependecies, true);
+        $missingDeps = array_filter($dependencies, static function ($dep) use ($allViableDependecies, &$checkedDep) {
+            return ! in_array($dep, $allViableDependecies, true);
         });
 
         foreach ($dependencies as $dep) {
             if ($schema->getComputed($dep)) {
                 // check for mising dependecies for the dependant computed field as well
                 $depComputed = $schema->getComputed($dep);
-                $depCheck = self::checkMissingDependencies($depComputed, $allViableDependecies, $schema);
+                $depCheck    = self::checkMissingDependencies($depComputed, $allViableDependecies, $schema);
                 if ($depCheck->status) {
                     $missingDeps = array_merge($missingDeps, $depCheck->missingDeps);
                 }
@@ -202,7 +199,7 @@ final class ComputedValueResolver
         }
 
         return (object) [
-            'status' => !empty($missingDeps),
+            'status'      => ! empty($missingDeps),
             'missingDeps' => $missingDeps,
         ];
     }

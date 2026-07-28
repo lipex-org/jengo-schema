@@ -4,16 +4,27 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use Jengo\Schema\Graph\Node;
+use Jengo\Schema\Hydration\Hydrator;
+use Jengo\Schema\Query\DTO\QueryOptions;
 use Jengo\Schema\Query\DTO\QueryResult;
-use Tests\Support\Schemas\UserSchema;
-use Tests\Support\Schemas\UserFileSchema;
+use Jengo\Schema\Query\Query;
+use Jengo\Schema\Query\QueryPlan;
+use Jengo\Schema\Reflection\SchemaReflector;
+use ReflectionClass;
 use Tests\Support\Entity\User;
-use function Jengo\Schema\query;
+use Tests\Support\Models\UserModel;
+use Tests\Support\Schemas\UserSchema;
 use Tests\TestCase;
 
+use function Jengo\Schema\query;
+
+/**
+ * @internal
+ */
 final class NewFeaturesTest extends TestCase
 {
-    public function setUp(): void
+    protected function setUp(): void
     {
         $this->fill = false;
         parent::setUp();
@@ -24,8 +35,8 @@ final class NewFeaturesTest extends TestCase
         // Seed 1 user, but 0 files
         $this->db->table('users')->insert([
             'first_name' => 'Alice',
-            'last_name' => 'Smith',
-            'email' => 'alice@example.com'
+            'last_name'  => 'Smith',
+            'email'      => 'alice@example.com',
         ]);
         $userId = (int) $this->db->insertID();
 
@@ -45,8 +56,8 @@ final class NewFeaturesTest extends TestCase
         for ($i = 1; $i <= 5; $i++) {
             $this->db->table('users')->insert([
                 'first_name' => "User {$i}",
-                'last_name' => 'Test',
-                'email' => "user{$i}@example.com"
+                'last_name'  => 'Test',
+                'email'      => "user{$i}@example.com",
             ]);
         }
 
@@ -65,15 +76,15 @@ final class NewFeaturesTest extends TestCase
         // Seed 2 users
         $this->db->table('users')->insert([
             'first_name' => 'Alice',
-            'last_name' => 'Smith',
-            'email' => 'alice@example.com'
+            'last_name'  => 'Smith',
+            'email'      => 'alice@example.com',
         ]);
         $id1 = (int) $this->db->insertID();
 
         $this->db->table('users')->insert([
             'first_name' => 'Bob',
-            'last_name' => 'Jones',
-            'email' => 'bob@example.com'
+            'last_name'  => 'Jones',
+            'email'      => 'bob@example.com',
         ]);
         $id2 = (int) $this->db->insertID();
 
@@ -89,17 +100,17 @@ final class NewFeaturesTest extends TestCase
         // Seed 1 user
         $this->db->table('users')->insert([
             'first_name' => 'Alice',
-            'last_name' => 'Smith',
-            'email' => 'alice@example.com'
+            'last_name'  => 'Smith',
+            'email'      => 'alice@example.com',
         ]);
         $userId = (int) $this->db->insertID();
 
         // Seed 1 file for user
         $this->db->table('user_files')->insert([
-            'name' => 'document.txt',
-            'size' => 1024.0,
-            'path' => '/docs/document.txt',
-            'user_id' => $userId
+            'name'    => 'document.txt',
+            'size'    => 1024.0,
+            'path'    => '/docs/document.txt',
+            'user_id' => $userId,
         ]);
 
         // No file comments are seeded (0 comments)
@@ -121,34 +132,33 @@ final class NewFeaturesTest extends TestCase
 
     public function testHydratorPreservesStringAndFloatPrimaryKeys()
     {
-        $ref = new \ReflectionClass(\Jengo\Schema\Hydration\Hydrator::class);
+        $ref    = new ReflectionClass(Hydrator::class);
         $method = $ref->getMethod('hydrateNode');
         $method->setAccessible(true);
 
-        $schema = \Jengo\Schema\Reflection\SchemaReflector::reflect(UserSchema::class);
-        $node = new \Jengo\Schema\Graph\Node($schema);
-        $options = new \Jengo\Schema\Query\DTO\QueryOptions();
-        $plan = new \Jengo\Schema\Query\QueryPlan($node, $options);
-        \Jengo\Schema\Query\Query::set(\Jengo\Schema\Query\QueryPlan::class, $plan);
+        $schema  = SchemaReflector::reflect(UserSchema::class);
+        $node    = new Node($schema);
+        $options = new QueryOptions();
+        $plan    = new QueryPlan($node, $options);
+        Query::set(QueryPlan::class, $plan);
 
         $rows = [
             [
-                't_0_root__id' => '0123',
+                't_0_root__id'         => '0123',
                 't_0_root__first_name' => 'Alice',
-                't_0_root__last_name' => 'Smith',
-                't_0_root__email' => 'alice@example.com',
+                't_0_root__last_name'  => 'Smith',
+                't_0_root__email'      => 'alice@example.com',
             ],
             [
-                't_0_root__id' => '1.5',
+                't_0_root__id'         => '1.5',
                 't_0_root__first_name' => 'Bob',
-                't_0_root__last_name' => 'Jones',
-                't_0_root__email' => 'bob@example.com',
-            ]
+                't_0_root__last_name'  => 'Jones',
+                't_0_root__email'      => 'bob@example.com',
+            ],
         ];
 
-        $hydrator = new \Jengo\Schema\Hydration\Hydrator($plan, $rows);
+        $hydrator = new Hydrator($plan, $rows);
         $selfProp = $ref->getProperty('self');
-        $selfProp->setAccessible(true);
         $selfProp->setValue(null, $hydrator);
 
         $result = $method->invoke(null, $node, $plan, $rows);
@@ -164,8 +174,8 @@ final class NewFeaturesTest extends TestCase
         for ($i = 1; $i <= 5; $i++) {
             $this->db->table('users')->insert([
                 'first_name' => "User {$i}",
-                'last_name' => 'Test',
-                'email' => "user{$i}@example.com"
+                'last_name'  => 'Test',
+                'email'      => "user{$i}@example.com",
             ]);
         }
 
@@ -187,9 +197,9 @@ final class NewFeaturesTest extends TestCase
         $_GET = [];
 
         // Mock incoming HTTP GET parameters
-        $_GET['first_name'] = 'Alice';
-        $_GET['select'] = 'email';
-        $_GET['page_custom_group'] = '2';
+        $_GET['first_name']         = 'Alice';
+        $_GET['select']             = 'email';
+        $_GET['page_custom_group']  = '2';
         $_GET['limit_custom_group'] = '2';
         request()->setGlobal('get', $_GET);
 
@@ -197,8 +207,8 @@ final class NewFeaturesTest extends TestCase
         for ($i = 1; $i <= 5; $i++) {
             $this->db->table('users')->insert([
                 'first_name' => "User {$i}",
-                'last_name' => 'Test',
-                'email' => "user{$i}@example.com"
+                'last_name'  => 'Test',
+                'email'      => "user{$i}@example.com",
             ]);
         }
 
@@ -231,18 +241,18 @@ final class NewFeaturesTest extends TestCase
         // Seed users
         $this->db->table('users')->insert([
             'first_name' => 'Alice',
-            'last_name' => 'Smith',
-            'email' => 'alice@example.com'
+            'last_name'  => 'Smith',
+            'email'      => 'alice@example.com',
         ]);
         $this->db->table('users')->insert([
             'first_name' => 'Alicia',
-            'last_name' => 'Keys',
-            'email' => 'alicia@example.com'
+            'last_name'  => 'Keys',
+            'email'      => 'alicia@example.com',
         ]);
         $this->db->table('users')->insert([
             'first_name' => 'Bob',
-            'last_name' => 'Alice',
-            'email' => 'bob@example.com'
+            'last_name'  => 'Alice',
+            'email'      => 'bob@example.com',
         ]);
 
         // 1. Runtime specific fields search: search 'Alice' but ONLY on 'last_name'
@@ -270,12 +280,12 @@ final class NewFeaturesTest extends TestCase
     public function testOpenModeDefaultLimitWhenPaginationAllowed()
     {
         // 1. Without pre-configured limit
-        $query1 = query(UserSchema::class)->open(['pagination']);
+        $query1  = query(UserSchema::class)->open(['pagination']);
         $result1 = $query1->get();
         $this->assertSame(15, $result1->pagination->limit);
 
         // 2. With pre-configured limit
-        $query2 = query(UserSchema::class)->limit(5)->open(['pagination']);
+        $query2  = query(UserSchema::class)->limit(5)->open(['pagination']);
         $result2 = $query2->get();
         $this->assertSame(5, $result2->pagination->limit);
     }
@@ -284,15 +294,15 @@ final class NewFeaturesTest extends TestCase
     {
         $userId = $this->db->table('users')->insert([
             'first_name' => 'Charlie',
-            'last_name' => 'Brown',
-            'email' => 'charlie@example.com'
+            'last_name'  => 'Brown',
+            'email'      => 'charlie@example.com',
         ]);
 
         $this->db->table('user_files')->insert([
-            'name' => 'charlie_report.pdf',
-            'size' => 2048.0,
-            'path' => '/docs/charlie_report.pdf',
-            'user_id' => $userId
+            'name'    => 'charlie_report.pdf',
+            'size'    => 2048.0,
+            'path'    => '/docs/charlie_report.pdf',
+            'user_id' => $userId,
         ]);
 
         $result = query(UserSchema::class)
@@ -309,18 +319,18 @@ final class NewFeaturesTest extends TestCase
     {
         $userId = $this->db->table('users')->insert([
             'first_name' => 'Charlie',
-            'last_name' => 'Brown',
-            'email' => 'charlie@example.com'
+            'last_name'  => 'Brown',
+            'email'      => 'charlie@example.com',
         ]);
 
         $this->db->table('user_files')->insert([
-            'name' => 'charlie_report.pdf',
-            'size' => 2048.0,
-            'path' => '/docs/charlie_report.pdf',
-            'user_id' => $userId
+            'name'    => 'charlie_report.pdf',
+            'size'    => 2048.0,
+            'path'    => '/docs/charlie_report.pdf',
+            'user_id' => $userId,
         ]);
 
-        $result = query(\Tests\Support\Models\UserModel::class)
+        $result = query(UserModel::class)
             ->where('first_name', 'Charlie')
             ->get();
 
@@ -341,17 +351,17 @@ final class NewFeaturesTest extends TestCase
     {
         $userId = $this->db->table('users')->insert([
             'first_name' => 'Charlie',
-            'last_name' => 'Brown',
-            'email' => 'charlie2@example.com'
+            'last_name'  => 'Brown',
+            'email'      => 'charlie2@example.com',
         ]);
 
         $result = query('users')
-            ->as(\Tests\Support\Entity\User::class)
+            ->as(User::class)
             ->where('first_name', 'Charlie')
             ->get();
 
         $this->assertCount(1, $result->data);
-        $this->assertInstanceOf(\Tests\Support\Entity\User::class, $result->data[0]);
+        $this->assertInstanceOf(User::class, $result->data[0]);
         $this->assertSame('Charlie', $result->data[0]->first_name);
     }
 
@@ -359,13 +369,13 @@ final class NewFeaturesTest extends TestCase
     {
         $this->db->table('users')->insert([
             'first_name' => 'Charlie',
-            'last_name' => 'Brown',
-            'email' => 'charlie3@example.com'
+            'last_name'  => 'Brown',
+            'email'      => 'charlie3@example.com',
         ]);
 
-        $config = config('Schema');
+        $config            = config('Schema');
         $config->entityMap = [
-            'users' => User::class
+            'users' => User::class,
         ];
 
         cache()->clean();

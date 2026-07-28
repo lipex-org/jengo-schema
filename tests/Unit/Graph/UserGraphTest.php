@@ -9,11 +9,13 @@ use Jengo\Schema\Graph\RelationshipGraph;
 use Jengo\Schema\Metadata\RelationMetadata;
 use Jengo\Schema\Reflection\SchemaReflector;
 use PHPUnit\Framework\TestCase;
-use Tests\Support\Schemas\UserSchema;
 use Tests\Support\Schemas\ProfileSchema;
+use Tests\Support\Schemas\UserSchema;
 
 /**
  * Validates the RelationshipGraph when starting from a UserSchema root.
+ *
+ * @internal
  */
 final class UserGraphTest extends TestCase
 {
@@ -29,7 +31,7 @@ final class UserGraphTest extends TestCase
             rootSchema: $schema,
             derivePaths: [
                 'profile.user',
-                'files'
+                'files',
             ],
         );
     }
@@ -94,7 +96,7 @@ final class UserGraphTest extends TestCase
     public function testGraphTerminatesCorrectly(): void
     {
         $recursiveUserNode = $this->graph->root->children[0]->children[0];
-        $this->assertEmpty($recursiveUserNode->children, "The graph should not recurse beyond the second User instance.");
+        $this->assertEmpty($recursiveUserNode->children, 'The graph should not recurse beyond the second User instance.');
     }
 
     /**
@@ -102,7 +104,7 @@ final class UserGraphTest extends TestCase
      */
     public function testComputedMetadataConsistency(): void
     {
-        $root = $this->graph->root;
+        $root          = $this->graph->root;
         $recursiveUser = $root->children[0]->children[0];
 
         foreach ([$root, $recursiveUser] as $node) {

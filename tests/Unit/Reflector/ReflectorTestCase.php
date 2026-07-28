@@ -1,6 +1,5 @@
 <?php
 
-
 declare(strict_types=1);
 
 namespace Tests\Unit\Reflector;
@@ -11,13 +10,16 @@ use Jengo\Schema\Metadata\FieldMetadata;
 use Jengo\Schema\Metadata\RelationMetadata;
 use Tests\TestCase;
 
+/**
+ * @internal
+ */
 class ReflectorTestCase extends TestCase
 {
     protected function getField(string $name, array $fields): FieldMetadata
     {
         $f = array_values(array_filter(
             $fields,
-            fn($field) => $field['name'] === $name
+            static fn($field) => $field['name'] === $name,
         ))[0];
 
         $f['type'] = new PropertyType(...$f['type']);
@@ -30,7 +32,7 @@ class ReflectorTestCase extends TestCase
     {
         return new RelationMetadata(...array_values(array_filter(
             $fields,
-            fn($field) => $field['name'] === $name
+            static fn($field) => $field['name'] === $name,
         ))[0]);
     }
 

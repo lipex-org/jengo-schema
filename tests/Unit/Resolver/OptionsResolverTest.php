@@ -14,24 +14,25 @@ use Jengo\Schema\Query\DTO\SortOptions;
 use Jengo\Schema\Query\Enums\QueryMode;
 use Jengo\Schema\Query\Enums\SortOrder;
 use Jengo\Schema\Query\OptionsResolver;
-use Jengo\Schema\Support\Utils;
 use PHPUnit\Framework\TestCase;
-use Mockery;
 
+/**
+ * @internal
+ */
 final class OptionsResolverTest extends TestCase
 {
     private $configMock;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
 
         // Mock the SchemaConfig DTO
-        $this->configMock = new SchemaConfig();
+        $this->configMock                    = new SchemaConfig();
         $this->configMock->paginationOptions = new PaginationOptions(limit: 20, page: 1, linksMax: 5);
-        $this->configMock->sortOptions = new SortOptions(column: 'id', direction: SortOrder::ASC);
-        $this->configMock->whereCallbacks = ['default_cb' => fn() => null];
-        $this->configMock->logger = true;
+        $this->configMock->sortOptions       = new SortOptions(column: 'id', direction: SortOrder::ASC);
+        $this->configMock->whereCallbacks    = ['default_cb' => static fn () => null];
+        $this->configMock->logger            = true;
 
         Factories::injectMock('config', 'Schema', $this->configMock);
     }
@@ -43,7 +44,7 @@ final class OptionsResolverTest extends TestCase
     {
         $inputOptions = new QueryOptions(
             pagination: new PaginationOptions(limit: 0), // Trigger default
-            sort: new SortOptions(column: '')           // Trigger default
+            sort: new SortOptions(column: ''),           // Trigger default
         );
 
         $resolved = OptionsResolver::resolve(QueryMode::INLINE, $inputOptions);
@@ -61,7 +62,7 @@ final class OptionsResolverTest extends TestCase
         $inputOptions = new QueryOptions(
             pagination: new PaginationOptions(limit: 50, page: 2),
             sort: new SortOptions(column: 'created_at', direction: SortOrder::DESC),
-            logger: false
+            logger: false,
         );
 
         $resolved = OptionsResolver::resolve(QueryMode::INLINE, $inputOptions);
@@ -78,11 +79,11 @@ final class OptionsResolverTest extends TestCase
      */
     public function testResolveParamsMergesCallbacks(): void
     {
-        $customCb = fn() => 'custom';
-        $params = new ParamOptions(callbacks: ['custom_cb' => $customCb]);
+        $customCb = static fn () => 'custom';
+        $params   = new ParamOptions(callbacks: ['custom_cb' => $customCb]);
 
         $inputOptions = new QueryOptions(params: $params);
-        $resolved = OptionsResolver::resolve(QueryMode::INLINE, $inputOptions);
+        $resolved     = OptionsResolver::resolve(QueryMode::INLINE, $inputOptions);
 
         $this->assertCount(2, $resolved->params->callbacks);
         $this->assertArrayHasKey('default_cb', $resolved->params->callbacks);
@@ -94,7 +95,7 @@ final class OptionsResolverTest extends TestCase
      */
     public function testResolveSelectPassesThrough(): void
     {
-        $select = new SelectOptions(select: ['id', 'name']);
+        $select       = new SelectOptions(select: ['id', 'name']);
         $inputOptions = new QueryOptions(select: $select);
 
         $resolved = OptionsResolver::resolve(QueryMode::INLINE, $inputOptions);

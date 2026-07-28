@@ -12,14 +12,17 @@ use Tests\Support\Models\UserModel;
 use Tests\Support\Schemas\UserFileSchema;
 use Tests\Support\Schemas\UserSchema;
 
+/**
+ * @internal
+ */
 final class UserSchemaTest extends ReflectorTestCase
 {
     public function testUserSchema(): void
     {
-        $schema = SchemaReflector::reflect(UserSchema::class);
-        $fieldsArray = ArrayUtils::toArray($schema->fields);
+        $schema         = SchemaReflector::reflect(UserSchema::class);
+        $fieldsArray    = ArrayUtils::toArray($schema->fields);
         $relationsArray = ArrayUtils::toArray($schema->relations);
-        $fieldNames = array_column($fieldsArray, 'name');
+        $fieldNames     = array_column($fieldsArray, 'name');
 
         // classes
         $this->assertSame(UserSchema::class, $schema->schemaClass);
@@ -32,7 +35,7 @@ final class UserSchemaTest extends ReflectorTestCase
         $this->assertFalse($schema->primaryKey->derived);
 
         // fields
-        $this->assertEquals(5, count($schema->fields));
+        $this->assertCount(5, $schema->fields);
         $this->assertContains('first_name', $fieldNames);
         $this->assertContains('last_name', $fieldNames);
         $this->assertContains('email', $fieldNames);
@@ -61,19 +64,19 @@ final class UserSchemaTest extends ReflectorTestCase
         // files
         $relation = $this->getRelation('files', $relationsArray);
 
-        $this->assertEquals(RelationMetadata::HAS_MANY, $relation->type);
+        $this->assertSame(RelationMetadata::HAS_MANY, $relation->type);
         $this->assertTrue($relation->many);
-        $this->assertEquals(UserFileSchema::class, $relation->schemaClass);
-        $this->assertEquals('id', $relation->fromField);
-        $this->assertEquals('user_id', $relation->toField);
+        $this->assertSame(UserFileSchema::class, $relation->schemaClass);
+        $this->assertSame('id', $relation->fromField);
+        $this->assertSame('user_id', $relation->toField);
         $this->assertEmpty($relation->select);
 
         // computed fields
-        $this->assertEquals(3, count($schema->computed));
+        $this->assertCount(3, $schema->computed);
 
         $fullNameComputedField = $schema->computed[0];
 
-        $this->assertEquals('getFullName', $fullNameComputedField->method);
-        $this->assertEquals('full_name', $fullNameComputedField->name);
+        $this->assertSame('getFullName', $fullNameComputedField->method);
+        $this->assertSame('full_name', $fullNameComputedField->name);
     }
 }

@@ -6,17 +6,18 @@ namespace Jengo\Schema\AI;
 
 use Jengo\Base\AI\AiCapableInterface;
 use Tatter\Schemas\Drafter\Handlers\DatabaseHandler;
+use Throwable;
 
 class DatabaseSchemaCapabilityProvider implements AiCapableInterface
 {
     public function getCapabilities(): array
     {
         try {
-            $db = (defined('ENVIRONMENT') && ENVIRONMENT === 'testing') ? 'tests' : 'default';
+            $db      = (defined('ENVIRONMENT') && ENVIRONMENT === 'testing') ? 'tests' : 'default';
             $handler = new DatabaseHandler(null, $db);
             $schemas = service('schemas');
-            $schema = $schemas->draft($handler)->get();
-        } catch (\Throwable $e) {
+            $schema  = $schemas->draft($handler)->get();
+        } catch (Throwable $e) {
             return [];
         }
 
@@ -28,33 +29,35 @@ class DatabaseSchemaCapabilityProvider implements AiCapableInterface
             }
 
             $fields = [];
+
             foreach ($table->fields as $field) {
                 $fields[] = [
-                    'name' => $field->name,
-                    'type' => $field->type ?? 'string',
+                    'name'    => $field->name,
+                    'type'    => $field->type ?? 'string',
                     'primary' => (bool) $field->primary_key,
                 ];
             }
 
             $relations = [];
+
             foreach ($table->relations as $relation) {
                 $relations[] = [
                     'table' => $relation->table,
-                    'type' => $relation->type,
+                    'type'  => $relation->type,
                 ];
             }
 
             $tablesInfo[] = [
-                'table' => $tableName,
-                'fields' => $fields,
+                'table'     => $tableName,
+                'fields'    => $fields,
                 'relations' => $relations,
             ];
         }
 
         return [
-            'name' => 'Database Schema Mapping',
+            'name'        => 'Database Schema Mapping',
             'description' => 'The current tables, columns, and relationships defined in the database.',
-            'tables' => $tablesInfo,
+            'tables'      => $tablesInfo,
         ];
     }
 }

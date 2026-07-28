@@ -4,22 +4,25 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Reflector;
 
+use Jengo\Schema\Metadata\RelationMetadata;
 use Jengo\Schema\Reflection\SchemaReflector;
 use Jengo\Schema\Support\ArrayUtils;
-use Tests\Support\Schemas\UserSchema;
-use Jengo\Schema\Metadata\RelationMetadata;
 use Tests\Support\Entity\UserFile;
 use Tests\Support\Models\UserFileModel;
 use Tests\Support\Schemas\UserFileSchema;
+use Tests\Support\Schemas\UserSchema;
 
+/**
+ * @internal
+ */
 final class UserFileSchemaTest extends ReflectorTestCase
 {
     public function testUserFileSchema(): void
     {
-        $schema = SchemaReflector::reflect(UserFileSchema::class);
-        $fieldsArray = ArrayUtils::toArray($schema->fields);
+        $schema         = SchemaReflector::reflect(UserFileSchema::class);
+        $fieldsArray    = ArrayUtils::toArray($schema->fields);
         $relationsArray = ArrayUtils::toArray($schema->relations);
-        $fieldNames = array_column($fieldsArray, 'name');
+        $fieldNames     = array_column($fieldsArray, 'name');
 
         // classes
         $this->assertSame(UserFileSchema::class, $schema->schemaClass);
@@ -32,7 +35,7 @@ final class UserFileSchemaTest extends ReflectorTestCase
         $this->assertFalse($schema->primaryKey->derived);
 
         // fields
-        $this->assertEquals(6, count($schema->fields));
+        $this->assertCount(6, $schema->fields);
         $this->assertContains('name', $fieldNames);
         $this->assertContains('comments', $fieldNames);
         $this->assertContains('size', $fieldNames);
@@ -69,10 +72,10 @@ final class UserFileSchemaTest extends ReflectorTestCase
         // user_id
         $relation = $this->getRelation('user', $relationsArray);
 
-        $this->assertEquals(RelationMetadata::BELONGS_TO, $relation->type);
+        $this->assertSame(RelationMetadata::BELONGS_TO, $relation->type);
         $this->assertFalse($relation->many);
-        $this->assertEquals(UserSchema::class, $relation->schemaClass);
-        $this->assertEquals('user_id', $relation->fromField);
+        $this->assertSame(UserSchema::class, $relation->schemaClass);
+        $this->assertSame('user_id', $relation->fromField);
         $this->assertEmpty($relation->select);
         $this->assertEmpty($relation->toField);
     }

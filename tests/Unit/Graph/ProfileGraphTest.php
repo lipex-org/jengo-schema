@@ -14,6 +14,8 @@ use Tests\Support\Schemas\UserSchema;
 
 /**
  * Validates the RelationshipGraph when starting from a ProfileSchema root.
+ *
+ * @internal
  */
 final class ProfileGraphTest extends TestCase
 {
@@ -96,7 +98,7 @@ final class ProfileGraphTest extends TestCase
         $this->assertSame(UserSchema::class, $finalUserNode->schema->schemaClass);
 
         // Verify this is the terminal node (leaf)
-        $this->assertEmpty($finalUserNode->children, "The graph should terminate at the third level (User).");
+        $this->assertEmpty($finalUserNode->children, 'The graph should terminate at the third level (User).');
     }
 
     /**
@@ -107,7 +109,7 @@ final class ProfileGraphTest extends TestCase
         $node = $this->graph->root;
 
         // Traverse through and check isMany()
-        while (!empty($node->children)) {
+        while (! empty($node->children)) {
             $node = $node->children[0];
             $this->assertFalse($node->isMany(), "Relationship to {$node->schema->schemaClass} should not be 'many'.");
         }

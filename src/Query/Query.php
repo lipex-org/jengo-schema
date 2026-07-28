@@ -12,11 +12,10 @@ use Jengo\Schema\Query\DTO\QueryResult;
 use Jengo\Schema\Query\Enums\QueryMode;
 use Jengo\Schema\Reflection\SchemaReflector;
 
-
 final class Query
 {
     public const QueryMode INLINE_MODE = QueryMode::INLINE;
-    public const QueryMode OPEN_MODE = QueryMode::OPEN;
+    public const QueryMode OPEN_MODE   = QueryMode::OPEN;
 
     private static $container;
 
@@ -59,5 +58,3 @@ final class Query
         return self::$container[$class] ?? null;
     }
 }
-
-

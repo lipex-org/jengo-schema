@@ -12,11 +12,14 @@ use Tests\Support\Schemas\ProfileSchema;
 use Tests\Support\Schemas\UserFileSchema;
 use Tests\Support\Schemas\UserSchema;
 
+/**
+ * @internal
+ */
 final class UserFileGraphTest extends GraphTestCase
 {
     private RelationshipGraph $graph;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
 
@@ -38,7 +41,7 @@ final class UserFileGraphTest extends GraphTestCase
         $this->assertInstanceOf(Node::class, $root);
         $this->assertSame(UserFileSchema::class, $root->schema->schemaClass);
         $this->assertTrue($root->isRoot());
-        $this->assertCount(1, $root->children, "UserFile should have one child: User.");
+        $this->assertCount(1, $root->children, 'UserFile should have one child: User.');
     }
 
     /**
@@ -49,7 +52,7 @@ final class UserFileGraphTest extends GraphTestCase
         $userNode = $this->graph->root->children[0];
 
         $this->assertSame(UserSchema::class, $userNode->schema->schemaClass);
-        $this->assertSame($this->graph->root, $userNode->parent, "User node must point back to UserFile.");
+        $this->assertSame($this->graph->root, $userNode->parent, 'User node must point back to UserFile.');
         $this->assertFalse($userNode->isMany());
 
         // Check relation metadata on the edge
@@ -62,17 +65,17 @@ final class UserFileGraphTest extends GraphTestCase
      */
     public function testSecondLevelGrandchildProfile(): void
     {
-        $userNode = $this->graph->root->children[0];
+        $userNode    = $this->graph->root->children[0];
         $profileNode = $userNode->children[0];
 
         $this->assertSame(ProfileSchema::class, $profileNode->schema->schemaClass);
-        $this->assertSame($userNode, $profileNode->parent, "Profile node must point back to User.");
+        $this->assertSame($userNode, $profileNode->parent, 'Profile node must point back to User.');
 
         // Validate Profile fields count (matches the 8 fields in your dump)
         $this->assertCount(8, $profileNode->schema->fields);
 
         // Validate specific field in Profile
-        $githubField = array_filter($profileNode->schema->fields, fn($f) => $f->name === 'github_handle');
+        $githubField = array_filter($profileNode->schema->fields, static fn ($f) => $f->name === 'github_handle');
         $this->assertNotEmpty($githubField);
     }
 
@@ -83,14 +86,14 @@ final class UserFileGraphTest extends GraphTestCase
     {
         $profileNode = $this->graph->root->children[0]->children[0];
 
-        $this->assertCount(1, $profileNode->children, "Profile should have recursed back to User.");
+        $this->assertCount(1, $profileNode->children, 'Profile should have recursed back to User.');
 
         $recursiveUserNode = $profileNode->children[0];
         $this->assertSame(UserSchema::class, $recursiveUserNode->schema->schemaClass);
         $this->assertSame($profileNode, $recursiveUserNode->parent);
 
         // This node is a leaf in your current dump (children count is 0)
-        $this->assertCount(0, $recursiveUserNode->children, "Graph should terminate at the third level.");
+        $this->assertCount(0, $recursiveUserNode->children, 'Graph should terminate at the third level.');
     }
 
     /**

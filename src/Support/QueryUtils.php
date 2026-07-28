@@ -10,20 +10,19 @@ use RuntimeException;
 
 final class QueryUtils
 {
-
     public static function resolveTableFromSchema(SchemaMetadata $schema): string
     {
         $modelClass = $schema->modelClass;
 
         // chec if class exists
-        if (!class_exists($modelClass)) {
+        if (! class_exists($modelClass)) {
             throw new RuntimeException("Model class {$modelClass} does not exist");
         }
 
         /** @var Model $modelInstance */
         $modelInstance = new $modelClass();
 
-        if (!$modelInstance instanceof Model) {
+        if (! $modelInstance instanceof Model) {
             throw new RuntimeException("Model class {$modelClass} is not an instance of CodeIgniter Model");
         }
 

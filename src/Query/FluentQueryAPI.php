@@ -9,9 +9,9 @@ use Jengo\Schema\Query\DTO\PaginationOptions;
 use Jengo\Schema\Query\DTO\ParamOptions;
 use Jengo\Schema\Query\DTO\QueryOptions;
 use Jengo\Schema\Query\DTO\QueryResult;
+use Jengo\Schema\Query\DTO\SearchOptions;
 use Jengo\Schema\Query\DTO\SelectOptions;
 use Jengo\Schema\Query\DTO\SortOptions;
-use Jengo\Schema\Query\DTO\SearchOptions;
 use Jengo\Schema\Query\Enums\QueryMode;
 use Jengo\Schema\Query\Enums\SortOrder;
 use Jengo\Schema\Reflection\SchemaReflector;
@@ -19,41 +19,40 @@ use Jengo\Schema\Reflection\SchemaReflector;
 final class FluentQueryAPI
 {
     // Internal state tracking
-    private array $params = [];
-    private array $whereConflicts = [];
-    private array $whereNotInConflicts = [];
-    private array $whereNotInParams = [];
-    private array $callbacks = [];
-    private bool $isOr = false;
-    private array $select = [];
-    private array $derive = [];
-    private int $limit = 0;
-    private int $page = 0;
-    private ?string $sortColumn = null;
-    private SortOrder $sortDirection = SortOrder::ASC;
-    private ?string $searchTerm = null;
-    private array $searchFields = [];
-    private string $searchSide = 'both';
+    private array $params                = [];
+    private array $whereConflicts        = [];
+    private array $whereNotInConflicts   = [];
+    private array $whereNotInParams      = [];
+    private array $callbacks             = [];
+    private bool $isOr                   = false;
+    private array $select                = [];
+    private array $derive                = [];
+    private int $limit                   = 0;
+    private int $page                    = 0;
+    private ?string $sortColumn          = null;
+    private SortOrder $sortDirection     = SortOrder::ASC;
+    private ?string $searchTerm          = null;
+    private array $searchFields          = [];
+    private string $searchSide           = 'both';
     private ?bool $searchCaseInsensitive = null;
-    private ?bool $logger = null;
-    private QueryMode $mode = QueryMode::INLINE;
-    private string $paginationGroup = 'default';
-    private array $allowedCapabilities = ['pagination'];
-    private ?string $entityClass = null;
+    private ?bool $logger                = null;
+    private QueryMode $mode              = QueryMode::INLINE;
+    private string $paginationGroup      = 'default';
+    private array $allowedCapabilities   = ['pagination'];
+    private ?string $entityClass         = null;
 
     public function __construct(
-        private readonly string $schema
+        private readonly string $schema,
     ) {
     }
 
     /**
      * Set the querymode to operate in
-     * @param QueryMode $mode
-     * @return FluentQueryAPI
      */
     public function mode(QueryMode $mode): self
     {
         $this->mode = $mode;
+
         return $this;
     }
 
@@ -63,12 +62,12 @@ final class FluentQueryAPI
     public function as(string $entityClass): self
     {
         $this->entityClass = $entityClass;
+
         return $this;
     }
 
     /**
      * Apply the inline mode
-     * @return FluentQueryAPI
      */
     public function inline(): self
     {
@@ -76,12 +75,11 @@ final class FluentQueryAPI
     }
 
     /**
-     * Apply the open mode. 
-     * This mode hydrates options from the request which can be useful for building dynamic queries based on user 
+     * Apply the open mode.
+     * This mode hydrates options from the request which can be useful for building dynamic queries based on user
      * input without having to manually extract those and apply them to the query.
-     * By default the FluentQueryAPI operates in INLINE mode where you have to manually 
+     * By default the FluentQueryAPI operates in INLINE mode where you have to manually
      * apply options using the provided methods.
-     * @return FluentQueryAPI
      */
     public function open(array $allowedCapabilities = ['pagination']): self
     {
@@ -99,23 +97,20 @@ final class FluentQueryAPI
 
     /**
      * Apply where clauses
-     * @param string $column
-     * @param mixed $value
-     * @return FluentQueryAPI
      */
     public function where(string $column, mixed $value, bool $isOr = false): self
     {
         if (\array_key_exists($column, $this->params)) {
             $this->params[$column][] = [
                 'value' => $value,
-                'or' => $isOr
+                'or'    => $isOr,
             ];
         } else {
             $this->params[$column] = [
                 [
                     'value' => $value,
-                    'or' => $isOr
-                ]
+                    'or'    => $isOr,
+                ],
             ];
         }
 
@@ -124,9 +119,6 @@ final class FluentQueryAPI
 
     /**
      * Applies aan operation on the current where operation
-     * @param string $column
-     * @param mixed $value
-     * @return FluentQueryAPI
      */
     public function orWhere(string $column, mixed $value): self
     {
@@ -135,9 +127,6 @@ final class FluentQueryAPI
 
     /**
      * Applies ow logic to an whenreNotIn operation
-     * @param string $column
-     * @param array $value
-     * @return FluentQueryAPI
      */
     public function orWhereNotIn(string $column, array $value): self
     {
@@ -146,9 +135,6 @@ final class FluentQueryAPI
 
     /**
      * Applies an or logic on an a whereNot operation
-     * @param string $column
-     * @param mixed $value
-     * @return FluentQueryAPI
      */
     public function orWhereNot(string $column, mixed $value): self
     {
@@ -157,36 +143,33 @@ final class FluentQueryAPI
 
     /**
      * Adds a where callback that can be used to apply custom where logic based on the name of the callback.
-     * @param string $name
-     * @param callable $callback
-     * @return FluentQueryAPI
      */
     public function whereCallback(string $name, callable $callback): self
     {
         $this->callbacks[$name] = $callback;
+
         return $this;
     }
 
     /**
-     * Applies or logic to all where operations. 
+     * Applies or logic to all where operations.
      * Note that this is applied globally for all where clauses and cannot be applied to specific ones at the moment.
-     * @param bool $isOr
-     * @return FluentQueryAPI
      */
     public function useOrLogic(bool $isOr = true): self
     {
         $this->isOr = $isOr;
+
         return $this;
     }
 
     /**
-     * Select specific fields/columns only. Note that this only applies to the root schema by design. 
+     * Select specific fields/columns only. Note that this only applies to the root schema by design.
      * You can use the schema definition for derived relationships to specify select fields for those.
      * Note: a feature for runtime selection of derived relationship fields is on the roadmap.
-     * @param string|array[] $fields
-     * @return FluentQueryAPI
+     *
+     * @param list<array>|string $fields
      */
-    public function select(string|array ...$fields): self
+    public function select(array|string ...$fields): self
     {
         foreach ($fields as $field) {
             if (is_array($field)) {
@@ -195,88 +178,82 @@ final class FluentQueryAPI
                 $this->select[] = $field;
             }
         }
+
         return $this;
     }
 
     /**
-     * Derive relationsships attached to the schema. 
+     * Derive relationsships attached to the schema.
      * Use dot syntax (for example - 'user.profile') for nested relatioships
-     * @param string[] $paths
-     * @return FluentQueryAPI
+     *
+     * @param list<string> $paths
      */
     public function derive(string ...$paths): self
     {
         $this->derive = [...$this->derive, ...$paths];
+
         return $this;
     }
 
     /**
      * Add a limit to the pagination logic
-     * @param int $limit
-     * @return FluentQueryAPI
      */
     public function limit(int $limit): self
     {
         $this->limit = $limit;
+
         return $this;
     }
 
     /**
-     * Add a page to the pagination logic. 
+     * Add a page to the pagination logic.
      * Note that you must also set a limit for this to work or use the paginate() method which sets both automatically
-     * @param int $page
-     * @return FluentQueryAPI
      */
     public function page(int $page): self
     {
         $this->page = $page;
+
         return $this;
     }
 
     /**
      * Applies an order by statement
-     * @param string $column
-     * @param SortOrder $direction
-     * @return FluentQueryAPI
      */
     public function sort(string $column, SortOrder $direction = SortOrder::DESC): self
     {
-        $this->sortColumn = $column;
+        $this->sortColumn    = $column;
         $this->sortDirection = $direction;
+
         return $this;
     }
 
     /**
      * Perform a search operation based on the schema's searchable fields
+     *
      * @param mixed $term
-     * @return FluentQueryAPI
      */
     public function search(?string $term, array $fields = [], string $side = 'both', ?bool $caseInsensitive = null): self
     {
-        $this->searchTerm = $term;
-        $this->searchFields = $fields;
-        $this->searchSide = $side;
+        $this->searchTerm            = $term;
+        $this->searchFields          = $fields;
+        $this->searchSide            = $side;
         $this->searchCaseInsensitive = $caseInsensitive;
+
         return $this;
     }
 
     /**
-     * Turns on debug mode which can be used to get access to aliases used in the system 
-     * @param bool $enable
-     * @return FluentQueryAPI
+     * Turns on debug mode which can be used to get access to aliases used in the system
      */
     public function debug(bool $enable = true): self
     {
         $this->logger = $enable;
+
         return $this;
     }
 
-
-
     /**
      * Adds a where clause with today's date
-     * @param string $column
-     * @return FluentQueryAPI
      */
     public function whereToday(string $column = 'created_at'): self
     {
@@ -285,78 +262,58 @@ final class FluentQueryAPI
 
     /**
      * Adds a where caluse with time past since the provided $timestring
-     * @param string $timeString
-     * @param string $column
-     * @return FluentQueryAPI
      */
     public function whereSince(string $timeString, string $column = 'created_at'): self
     {
-        return $this->where("$column >=", date('Y-m-d H:i:s', strtotime($timeString)));
+        return $this->where("{$column} >=", date('Y-m-d H:i:s', strtotime($timeString)));
     }
 
     /**
      * Apply where Less THan or Equal to comparison
-     * @param string $column
-     * @param mixed $value
-     * @return FluentQueryAPI
      */
     public function whereLTe(string $column, mixed $value): self
     {
-        return $this->where("$column <=", $value);
+        return $this->where("{$column} <=", $value);
     }
 
     /**
      * Apply a where not claues
-     * @param string $column
-     * @param mixed $value
-     * @return FluentQueryAPI
      */
     public function whereNot(string $column, mixed $value, bool $isOr = false): self
     {
-        return $this->where("$column !=", $value, $isOr);
+        return $this->where("{$column} !=", $value, $isOr);
     }
 
     /**
      * Apply callbacks only if $condition is true
-     * @param mixed $condition
-     * @param callable $callback
-     * @return FluentQueryAPI
      */
     public function when(mixed $condition, callable $callback): self
     {
         if ($condition) {
             $callback($this, $condition);
         }
+
         return $this;
     }
 
     /**
      * Applies a Greater Than comparision
-     * @param string $column
-     * @param mixed $value
-     * @return FluentQueryAPI
      */
     public function whereGt(string $column, mixed $value): self
     {
-        return $this->where("$column >", $value);
+        return $this->where("{$column} >", $value);
     }
 
     /**
      * Applies a Less Than comparison
-     * @param string $column
-     * @param mixed $value
-     * @return FluentQueryAPI
      */
     public function whereLt(string $column, mixed $value): self
     {
-        return $this->where("$column <", $value);
+        return $this->where("{$column} <", $value);
     }
 
     /**
      * Alias for where with stirct array type required
-     * @param string $column
-     * @param array $values
-     * @return FluentQueryAPI
      */
     public function whereIn(string $column, array $values): self
     {
@@ -365,9 +322,6 @@ final class FluentQueryAPI
 
     /**
      * Alias for where with stirct array type required and or flag raised
-     * @param string $column
-     * @param array $values
-     * @return FluentQueryAPI
      */
     public function orWhereIn(string $column, array $values): self
     {
@@ -376,10 +330,6 @@ final class FluentQueryAPI
 
     /**
      * Applies whereNotIn logic
-     * @param string $column
-     * @param array $values
-     * @param bool $isOr
-     * @return FluentQueryAPI
      */
     public function whereNotIn(string $column, array $values, bool $isOr = false): self
     {
@@ -389,17 +339,16 @@ final class FluentQueryAPI
             $this->whereNotInParams[$column] = [
                 [
                     'value' => $values,
-                    'or' => $isOr
-                ]
+                    'or'    => $isOr,
+                ],
             ];
         }
+
         return $this;
     }
 
     /**
      * Alias for debug
-     * @param bool $enable
-     * @return FluentQueryAPI
      */
     public function log(bool $enable = true): self
     {
@@ -408,8 +357,6 @@ final class FluentQueryAPI
 
     /**
      * Alias for mode method
-     * @param QueryMode $mode
-     * @return FluentQueryAPI
      */
     public function withQueryMode(QueryMode $mode): self
     {
@@ -418,7 +365,6 @@ final class FluentQueryAPI
 
     /**
      * Alias for mode method with QueryMode::INLINE
-     * @return FluentQueryAPI
      */
     public function inlineMode(): self
     {
@@ -427,7 +373,6 @@ final class FluentQueryAPI
 
     /**
      * Alias for mode method with QueryMode::OPEN
-     * @return FluentQueryAPI
      */
     public function openMode(array $allowedCapabilities = ['pagination']): self
     {
@@ -436,8 +381,6 @@ final class FluentQueryAPI
 
     /**
      * Assign a where clause for null column
-     * @param string $column
-     * @return FluentQueryAPI
      */
     public function whereNull(string $column): self
     {
@@ -446,8 +389,6 @@ final class FluentQueryAPI
 
     /**
      * Applies 'DESC' sort order
-     * @param string $column
-     * @return FluentQueryAPI
      */
     public function latest(string $column = 'created_at'): self
     {
@@ -456,8 +397,6 @@ final class FluentQueryAPI
 
     /**
      * Applies 'ASC' sort order
-     * @param string $column
-     * @return FluentQueryAPI
      */
     public function oldest(string $column = 'created_at'): self
     {
@@ -466,31 +405,26 @@ final class FluentQueryAPI
 
     /**
      * Applies page and limit automatically
-     * @param int $page
-     * @param int $perPage
-     * @return FluentQueryAPI
      */
     public function paginate(int $page, int $perPage = 15, string $group = 'default'): self
     {
         $this->paginationGroup = $group;
+
         return $this->page($page)->limit($perPage);
     }
 
     /**
      * Configure a specific pagination group.
-     * @param string $group
-     * @return FluentQueryAPI
      */
     public function paginationGroup(string $group): self
     {
         $this->paginationGroup = $group;
+
         return $this;
     }
 
     /**
      * Assign a where clause for not null column
-     * @param string $column
-     * @return FluentQueryAPI
      */
     public function whereNotNull(string $column): self
     {
@@ -499,8 +433,8 @@ final class FluentQueryAPI
 
     /**
      * Alias for derive
-     * @param string[] $paths
-     * @return FluentQueryAPI
+     *
+     * @param list<string> $paths
      */
     public function with(string ...$paths): self
     {
@@ -536,7 +470,7 @@ final class FluentQueryAPI
     /**
      * Execution Terminators
      */
-    public function first(bool $value = false): object|null
+    public function first(bool $value = false): ?object
     {
         $result = $this->execute(first: true);
 
@@ -547,7 +481,7 @@ final class FluentQueryAPI
         return $result;
     }
 
-    public function get(bool $value = false): object|array|null
+    public function get(bool $value = false): array|object|null
     {
         $result = $this->execute(first: false);
 
@@ -562,11 +496,10 @@ final class FluentQueryAPI
      * Find a record by its primary key.
      *
      * @param mixed $id The primary key value
-     * @return object|array|null
      */
-    public function find(mixed $id): object|array|null
+    public function find(mixed $id): array|object|null
     {
-        $metadata = SchemaReflector::reflect($this->schema);
+        $metadata       = SchemaReflector::reflect($this->schema);
         $primaryKeyName = $metadata->primaryKey->name;
 
         return $this->where($primaryKeyName, $id)->first(true);
@@ -574,12 +507,14 @@ final class FluentQueryAPI
 
     public static function dd(): void
     {
-        if (ENVIRONMENT === 'production')
+        if (ENVIRONMENT === 'production') {
             return;
+        }
 
         $logs = QueryLogger::all();
         var_dump(json_encode($logs, JSON_PRETTY_PRINT));
-        die();
+
+        exit();
     }
 
     /**
@@ -592,29 +527,29 @@ final class FluentQueryAPI
                 params: $this->params,
                 callbacks: $this->callbacks,
                 whereNotInParams: $this->whereNotInParams,
-                isOr: $this->isOr
+                isOr: $this->isOr,
             ),
             select: new SelectOptions(select: $this->select),
             pagination: new PaginationOptions(
                 limit: $this->limit,
                 page: $this->page,
-                group: $this->paginationGroup
+                group: $this->paginationGroup,
             ),
             derive: $this->derive,
             sort: new SortOptions(
                 column: $this->sortColumn,
-                direction: $this->sortDirection
+                direction: $this->sortDirection,
             ),
             search: new SearchOptions(
                 value: $this->searchTerm,
                 fields: $this->searchFields,
                 side: $this->searchSide,
-                caseInsensitive: $this->searchCaseInsensitive
+                caseInsensitive: $this->searchCaseInsensitive,
             ),
             logger: $this->logger,
             first: $first,
             allowedCapabilities: $this->allowedCapabilities,
-            entityClass: $this->entityClass
+            entityClass: $this->entityClass,
         );
 
         return Query::run($this->schema, $options, $this->mode);

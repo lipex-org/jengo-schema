@@ -14,6 +14,9 @@ use Tests\Support\Models\ProfileModel;
 use Tests\Support\Models\UserFileModel;
 use Tests\Support\Models\UserModel;
 
+/**
+ * @internal
+ */
 class TestCase extends CIUnitTestCase
 {
     use DatabaseTestTrait;
@@ -21,15 +24,12 @@ class TestCase extends CIUnitTestCase
     protected $migrate = true;
     protected $migrateOnce = false;
     protected $refresh = true;
-    protected $namespace = null;
-
+    protected $namespace;
     protected bool $fill = true;
-
     protected MockInputOutput $io;
-
     protected array $cliOutputs;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         $this->loadDependencies();
         $this->migrateDatabase();
@@ -43,7 +43,7 @@ class TestCase extends CIUnitTestCase
         CLI::setInputOutput($this->io);
     }
 
-    public function tearDown(): void
+    protected function tearDown(): void
     {
         $this->regressDatabase();
         $this->loadDependencies();
@@ -61,9 +61,9 @@ class TestCase extends CIUnitTestCase
         $userFileModel = new UserFileModel($conn);
         $userProfileModel = new ProfileModel($conn);
 
-        $users = new Fabricator($userModel)->make(10);
-        $userFiles = new Fabricator($userFileModel)->make(10);
-        $userProfiles = new Fabricator($userProfileModel)->make(10);
+        $users = (new Fabricator($userModel))->make(10);
+        $userFiles = (new Fabricator($userFileModel))->make(10);
+        $userProfiles = (new Fabricator($userProfileModel))->make(10);
 
         $conn->table('users')->insertBatch($users);
         $conn->table('user_files')->insertBatch($userFiles);

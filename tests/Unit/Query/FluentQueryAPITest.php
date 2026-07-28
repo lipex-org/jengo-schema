@@ -5,19 +5,23 @@ declare(strict_types=1);
 namespace Tests\Unit\Query;
 
 use CodeIgniter\I18n\Time;
-use Jengo\Schema\Query\FluentQueryAPI;
-use Jengo\Schema\Query\Query;
+use Jengo\Schema\Query\DTO\ParamOptions;
+use Jengo\Schema\Query\DTO\QueryOptions;
 use Jengo\Schema\Query\DTO\QueryResult;
 use Jengo\Schema\Query\Enums\QueryMode;
 use Jengo\Schema\Query\Enums\SortOrder;
-use function Jengo\Schema\dump_query;
-use function Jengo\Schema\query;
+use Jengo\Schema\Query\Query;
 use Tests\Support\Entity\User;
 use Tests\Support\Schemas\UserSchema;
 
+use function Jengo\Schema\query;
+
+/**
+ * @internal
+ */
 final class FluentQueryAPITest extends QueryTestCase
 {
-    public function setUp(): void
+    protected function setUp(): void
     {
         $this->fill = false;
         parent::setUp();
@@ -26,6 +30,7 @@ final class FluentQueryAPITest extends QueryTestCase
     private function seedUser(array $data): int
     {
         $this->db->table('users')->insert($data);
+
         return (int) $this->db->insertID();
     }
 
@@ -33,15 +38,15 @@ final class FluentQueryAPITest extends QueryTestCase
     {
         $id = $this->seedUser([
             'first_name' => 'Alice',
-            'last_name' => 'Smith',
-            'email' => 'alice@example.com',
+            'last_name'  => 'Smith',
+            'email'      => 'alice@example.com',
             'created_at' => Time::now()->toDateTimeString(),
             'updated_at' => Time::now()->toDateTimeString(),
         ]);
 
-        $entity = Query::run(UserSchema::class, (new \Jengo\Schema\Query\DTO\QueryOptions(
-            params: new \Jengo\Schema\Query\DTO\ParamOptions(['first_name' => 'Alice']),
-            first: true
+        $entity = Query::run(UserSchema::class, (new QueryOptions(
+            params: new ParamOptions(['first_name' => 'Alice']),
+            first: true,
         )));
 
         $this->assertInstanceOf(QueryResult::class, $entity);
@@ -62,7 +67,6 @@ final class FluentQueryAPITest extends QueryTestCase
     {
         $this->seedUser(['first_name' => 'Bob', 'last_name' => 'Billy', 'email' => 'bob@example.com']);
         $this->seedUser(['first_name' => 'Carol', 'last_name' => 'Jones', 'email' => 'carol@example.com']);
-
 
         $rows = query(UserSchema::class)
             ->select('first_name', 'last_name')
@@ -125,10 +129,10 @@ final class FluentQueryAPITest extends QueryTestCase
 
     public function testWhereSinceTodayLtGtNullMethods(): void
     {
-        $today = date('Y-m-d');
+        $today     = date('Y-m-d');
         $yesterday = date('Y-m-d', strtotime('-1 day'));
 
-        $idToday = $this->seedUser(['first_name' => 'Today', 'last_name' => 'Test', 'email' => 'today@example.com', 'created_at' => $today, 'updated_at' => $today]);
+        $idToday     = $this->seedUser(['first_name' => 'Today', 'last_name' => 'Test', 'email' => 'today@example.com', 'created_at' => $today, 'updated_at' => $today]);
         $idYesterday = $this->seedUser(['first_name' => 'Yesterday', 'last_name' => 'Test', 'email' => 'yesterday@example.com', 'created_at' => $yesterday, 'updated_at' => $yesterday]);
 
         $todayRows = query(UserSchema::class)->whereToday()->get();
@@ -162,9 +166,9 @@ final class FluentQueryAPITest extends QueryTestCase
         $base = query(UserSchema::class)
             ->select('id', 'first_name')
             ->with('profile')
-            ->whereCallback('dummy', fn($key, $value, $boolean, $phase) => [$key, $value]);
+            ->whereCallback('dummy', static fn ($key, $value, $boolean, $phase) => [$key, $value]);
 
-        $result = $base->when(true, fn($q) => $q->where('id', $id))->first();
+        $result = $base->when(true, static fn ($q) => $q->where('id', $id))->first();
 
         $this->assertInstanceOf(QueryResult::class, $result);
         $this->assertInstanceOf(User::class, $result->data);
@@ -185,4 +189,3 @@ final class FluentQueryAPITest extends QueryTestCase
         $this->assertSame($base->log(true), $base); // debug alias
     }
 }
-

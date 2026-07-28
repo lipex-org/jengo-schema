@@ -26,12 +26,12 @@ final class SchemaReflector
 {
     public static function reflect(string $schemaClass): SchemaMetadata
     {
-        if (!class_exists($schemaClass) || is_subclass_of($schemaClass, \CodeIgniter\Model::class)) {
+        if (! class_exists($schemaClass) || is_subclass_of($schemaClass, \CodeIgniter\Model::class)) {
             $virtualMeta = VirtualSchemaResolver::resolve($schemaClass);
             if ($virtualMeta !== null) {
                 return $virtualMeta;
             }
-            if (!class_exists($schemaClass)) {
+            if (! class_exists($schemaClass)) {
                 throw new RuntimeException("Schema class {$schemaClass} does not exist.");
             }
         }
@@ -43,16 +43,16 @@ final class SchemaReflector
          *  -------------------- */
         $modelAttr = AttributeReflector::class($reflection, Model::class);
 
-        if (!$modelAttr) {
+        if (! $modelAttr) {
             throw InvalidSchemaException::missingModelAttribute($schemaClass);
         }
 
         /** --------------------
          *  Properties
          * -------------------- */
-        $fields = [];
-        $relations = [];
-        $primary = null;
+        $fields           = [];
+        $relations        = [];
+        $primary          = null;
         $parsedProperties = [];
 
         foreach ($reflection->getProperties() as $property) {
@@ -71,16 +71,17 @@ final class SchemaReflector
                     name: $name,
                     searchable: false,
                     derived: false,
-                    type: $type
+                    type: $type,
                 );
 
                 $parsedProperties[] = $name;
+
                 continue;
             }
 
             // Relations
             $belongsTo = AttributeReflector::property($property, BelongsTo::class);
-            $hasMany = AttributeReflector::property($property, HasMany::class);
+            $hasMany   = AttributeReflector::property($property, HasMany::class);
 
             if ($belongsTo && $hasMany) {
                 throw InvalidRelationshipException::duplicateRelation($name, $schemaClass);
@@ -106,15 +107,16 @@ final class SchemaReflector
                     name: $name,
                     searchable: false,
                     derived: true,
-                    type: $type
+                    type: $type,
                 );
 
                 $parsedProperties[] = $name;
+
                 continue;
             }
 
             // Fields
-            $fieldAttr = AttributeReflector::property($property, Field::class);
+            $fieldAttr   = AttributeReflector::property($property, Field::class);
             $derivedAttr = AttributeReflector::property($property, Derived::class);
 
             if ($fieldAttr || $derivedAttr) {
@@ -123,27 +125,28 @@ final class SchemaReflector
                     searchable: $fieldAttr?->searchable ?? false,
                     derived: (bool) $derivedAttr,
                     type: $type,
-                    cast: $fieldAttr?->cast ?? null
+                    cast: $fieldAttr?->cast ?? null,
                 );
 
                 $parsedProperties[] = $name;
+
                 continue;
             }
 
-            if (!in_array($name, $parsedProperties)) {
+            if (! in_array($name, $parsedProperties, true)) {
                 // add as a normal field
                 $fields[] = new FieldMetadata(
                     name: $name,
                     searchable: false,
                     derived: false,
-                    type: $type
+                    type: $type,
                 );
             }
 
             $parsedProperties[] = $name;
         }
 
-        if (!$primary) {
+        if (! $primary) {
             throw InvalidSchemaException::missingPrimaryKey($schemaClass);
         }
 
@@ -160,7 +163,7 @@ final class SchemaReflector
                     name: $computedAttr->name,
                     method: $method->getName(),
                     dependants: $computedAttr->dependants,
-                    cast: $computedAttr->cast
+                    cast: $computedAttr->cast,
                 );
             }
         }

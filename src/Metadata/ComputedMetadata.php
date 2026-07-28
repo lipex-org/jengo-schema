@@ -13,7 +13,8 @@ final class ComputedMetadata
         public string $method,
         /**
          * Dependant fields
-         * @var string[]
+         *
+         * @var list<string>
          */
         public array $dependants = [],
         public ?Cast $cast = null,

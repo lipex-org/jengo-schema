@@ -12,17 +12,17 @@ final class CreateFileComments extends Migration
     {
         $this->forge->addField([
             'id' => [
-                'type' => 'INT',
-                'unsigned' => true,
+                'type'           => 'INT',
+                'unsigned'       => true,
                 'auto_increment' => true,
             ],
             'user_file_id' => [
-                'type' => 'INT',
-                'unsigned' => true
+                'type'     => 'INT',
+                'unsigned' => true,
             ],
             'comment' => [
                 'type' => 'TEXT',
-                'null' => false
+                'null' => false,
             ],
         ]);
 

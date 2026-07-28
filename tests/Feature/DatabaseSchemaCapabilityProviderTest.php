@@ -8,25 +8,29 @@ use Config\Database;
 use Jengo\Schema\AI\DatabaseSchemaCapabilityProvider;
 use Tests\TestCase;
 
+/**
+ * @internal
+ */
 final class DatabaseSchemaCapabilityProviderTest extends TestCase
 {
     public function testGetCapabilities(): void
     {
         $forge = Database::forge('tests');
         $forge->addField([
-            'id' => ['type' => 'INTEGER', 'auto_increment' => true],
+            'id'    => ['type' => 'INTEGER', 'auto_increment' => true],
             'title' => ['type' => 'VARCHAR', 'constraint' => 255],
         ]);
         $forge->addPrimaryKey('id');
         $forge->createTable('temp_cap_table', true);
 
-        $provider = new DatabaseSchemaCapabilityProvider();
+        $provider     = new DatabaseSchemaCapabilityProvider();
         $capabilities = $provider->getCapabilities();
 
         $this->assertNotEmpty($capabilities);
         $this->assertSame('Database Schema Mapping', $capabilities['name']);
 
         $tempTableFound = false;
+
         foreach ($capabilities['tables'] as $tableInfo) {
             if ($tableInfo['table'] === 'temp_cap_table') {
                 $tempTableFound = true;

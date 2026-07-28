@@ -14,11 +14,11 @@ use Tests\Support\Entity\User;
 use Tests\Support\Models\UserModel;
 
 /**
- * @property ProfileSchema $profile
- * @property UserFileSchema[] $files
- * @property string $full_name
- * @property int $fileCount
- * @property string $greeting
+ * @property int                  $fileCount
+ * @property list<UserFileSchema> $files
+ * @property string               $full_name
+ * @property string               $greeting
+ * @property ProfileSchema        $profile
  */
 #[Model(UserModel::class, User::class)]
 final class UserSchema
@@ -45,7 +45,7 @@ final class UserSchema
     #[HasMany(
         UserFileSchema::class,
         'id',
-        'user_id'
+        'user_id',
     )]
     public array $files = [];
 

@@ -12,26 +12,26 @@ final class CreateUserFiles extends Migration
     {
         $this->forge->addField([
             'id' => [
-                'type' => 'INT',
-                'unsigned' => true,
+                'type'           => 'INT',
+                'unsigned'       => true,
                 'auto_increment' => true,
             ],
 
             'user_id' => [
-                'type' => 'INT',
-                'unsigned' => true
+                'type'     => 'INT',
+                'unsigned' => true,
             ],
 
             'name' => [
                 'type' => 'TEXT',
-                'null' => false
+                'null' => false,
             ],
 
             'size' => [
-                'type' => 'DECIMAL',
+                'type'       => 'DECIMAL',
                 'constraint' => '10,2',
-                'default' => '0.00',
-                'null' => false,
+                'default'    => '0.00',
+                'null'       => false,
             ],
 
             'path' => [
@@ -40,12 +40,12 @@ final class CreateUserFiles extends Migration
 
             'created_at' => [
                 'type' => 'DATETIME',
-                'null' => true
+                'null' => true,
             ],
 
             'updated_at' => [
                 'type' => 'DATETIME',
-                'null' => true
+                'null' => true,
             ],
         ]);
 

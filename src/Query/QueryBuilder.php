@@ -9,7 +9,6 @@ use CodeIgniter\Database\ResultInterface;
 use Config\Database;
 use Jengo\Schema\Debug\QueryLogger;
 use Jengo\Schema\Graph\Node;
-use Jengo\Schema\Metadata\FieldMetadata;
 use Jengo\Schema\Query\DTO\BuilderResult;
 use Jengo\Schema\Query\DTO\PaginationOptions;
 use Jengo\Schema\Query\DTO\ParamOptions;
@@ -23,16 +22,17 @@ use RuntimeException;
 
 final class QueryBuilder
 {
-    private ?BaseBuilder $builder = null;
+    private ?BaseBuilder $builder  = null;
     private ?QueryOptions $options = null;
+
     public static function build(Node $rootNode, QueryOptions $options, QueryPlan $plan): self
     {
         $baseTable = QueryUtils::resolveTableFromSchema($rootNode->schema);
         $rootAlias = AliasGenerator::for($rootNode);
-        $db = Database::connect();
+        $db        = Database::connect();
 
         // init builder
-        $builder = $db->table("$baseTable AS $rootAlias");
+        $builder = $db->table("{$baseTable} AS {$rootAlias}");
 
         // build query
         self::applyRootSelect($builder, $plan, $rootAlias);
@@ -56,11 +56,10 @@ final class QueryBuilder
 
     public function execute(): BuilderResult
     {
-
         $builder = $this->builder;
         $options = $this->options;
 
-        if (!$builder || !$options) {
+        if (! $builder || ! $options) {
             throw new RuntimeException('You need to build the query before executing');
         }
 
@@ -68,8 +67,8 @@ final class QueryBuilder
             QueryLogger::enable();
         }
 
-        $total = $builder->countAllResults(false);
-        $result = self::applyPagination($builder, $options->pagination);
+        $total       = $builder->countAllResults(false);
+        $result      = self::applyPagination($builder, $options->pagination);
         $resultArray = $result->getResultArray();
 
         QueryLogger::record();
@@ -82,7 +81,7 @@ final class QueryBuilder
 
     private static function applyRootSelect(BaseBuilder $builder, QueryPlan $plan, string $rootAlias): void
     {
-        $baseSelects = ["$rootAlias.*"];
+        $baseSelects = ["{$rootAlias}.*"];
 
         if ($plan->selects[$rootAlias] ?? []) {
             $baseSelects = $plan->selects[$rootAlias];
@@ -105,24 +104,26 @@ final class QueryBuilder
     private static function getNodeRelationPath(Node $node): string
     {
         $parts = [];
-        $curr = $node;
+        $curr  = $node;
+
         while ($curr !== null && $curr->edge !== null) {
             array_unshift($parts, $curr->edge->relation->name);
             $curr = $curr->parent;
         }
+
         return implode('.', $parts);
     }
 
     private static function applySearch(BaseBuilder $builder, Node $node, SearchOptions $search): void
     {
-        if (!$search->value) {
+        if (! $search->value) {
             return;
         }
 
         $fields = [];
         $prefix = self::getNodeRelationPath($node);
 
-        if (!empty($search->fields)) {
+        if (! empty($search->fields)) {
             foreach ($node->schema->fields as $f) {
                 $qualified = $prefix !== '' ? "{$prefix}.{$f->name}" : $f->name;
                 if (in_array($qualified, $search->fields, true)) {
@@ -130,7 +131,7 @@ final class QueryBuilder
                 }
             }
             if ($node->schema->primaryKey) {
-                $pkName = $node->schema->primaryKey->name;
+                $pkName      = $node->schema->primaryKey->name;
                 $qualifiedPk = $prefix !== '' ? "{$prefix}.{$pkName}" : $pkName;
                 if (in_array($qualifiedPk, $search->fields, true)) {
                     $fields[] = $pkName;
@@ -149,15 +150,16 @@ final class QueryBuilder
 
         $alias = AliasGenerator::for($node);
 
-        if (!empty($fields)) {
+        if (! empty($fields)) {
             $builder->groupStart();
+
             foreach ($fields as $field) {
                 $builder->orLike(
                     sprintf('%s.%s', $alias, $field),
                     $search->value,
                     $search->side,
                     true,
-                    $search->caseInsensitive ?? false
+                    $search->caseInsensitive ?? false,
                 );
             }
             $builder->groupEnd();
@@ -171,7 +173,7 @@ final class QueryBuilder
     private static function applySort(BaseBuilder $builder, SortOptions $sort, string $rootAlias): void
     {
         if ($sort->column) {
-            $builder->orderBy("$rootAlias.{$sort->column}", $sort->direction->value);
+            $builder->orderBy("{$rootAlias}.{$sort->column}", $sort->direction->value);
         }
     }
 
@@ -182,7 +184,7 @@ final class QueryBuilder
 
             $joins = $plan->joins[$childAlias] ?? null;
 
-            if (!$joins) {
+            if (! $joins) {
                 continue;
             }
 
@@ -196,7 +198,7 @@ final class QueryBuilder
     private static function applyPagination(BaseBuilder $builder, PaginationOptions $pagination): ResultInterface
     {
         $limit = $pagination->limit;
-        $page = $pagination->page;
+        $page  = $pagination->page;
 
         if ($limit === null || $limit === 0) {
             return $builder->get();
@@ -210,61 +212,64 @@ final class QueryBuilder
     private static function validateWhereValue(array $value)
     {
         $undefined = '&&&&&&&____UNDEFINED___&&&&&&&&___VALUE:NOT:DEFINED___AND:CANNOT:BE:CONFUSED:WITH:ANTOHER:VALUE_';
-        $or = array_key_exists('or', $value) ? $value['or'] : $undefined;
-        $val = array_key_exists('value', $value) ? $value['value'] : $undefined;
+        $or        = array_key_exists('or', $value) ? $value['or'] : $undefined;
+        $val       = array_key_exists('value', $value) ? $value['value'] : $undefined;
 
-        if ($or === $undefined || $val === $undefined || !is_bool($or)) {
+        if ($or === $undefined || $val === $undefined || ! is_bool($or)) {
             throw new RuntimeException('Invalid where clause value. Expected keys: "value" and "or". Provided value ' . json_encode($value) . ' Ensure that the value is an associative array with these keys or else provide a normal array/string value for the where clause.');
         }
 
         return new WhereValue(
             value: $val,
-            or: $or
+            or: $or,
         );
     }
 
     private static function applyWhereOnWhereValue(BaseBuilder $builder, mixed $key, mixed $arr, string $rootAlias, bool $globalIsOr, bool $isWhereIn = false): void
     {
         if ($isWhereIn) {
-            if (!is_array($arr)) {
-
+            if (! is_array($arr)) {
                 return;
             }
 
             foreach ($arr as $value) {
                 if (self::isAssociative($value)) {
                     $whereVal = self::validateWhereValue($value);
-                    $val = $whereVal->value;
-                    $isOr = $whereVal->or;
+                    $val      = $whereVal->value;
+                    $isOr     = $whereVal->or;
 
                     if (is_array($val)) {
                         if (self::isAssociative($val)) {
                             self::applyWhereOnWhereValue($builder, $key, $val, $rootAlias, $isOr, $isWhereIn);
+
                             continue;
                         }
 
-                        if (!$isOr) {
-                            $builder->whereNotIn("$rootAlias.$key", $val);
+                        if (! $isOr) {
+                            $builder->whereNotIn("{$rootAlias}.{$key}", $val);
                         } else {
-                            $builder->orWhereNotIn("$rootAlias.$key", $val);
+                            $builder->orWhereNotIn("{$rootAlias}.{$key}", $val);
                         }
+
                         continue;
                     }
 
-                    if (!$isOr) {
-                        $builder->where("$rootAlias.$key !=", $val);
+                    if (! $isOr) {
+                        $builder->where("{$rootAlias}.{$key} !=", $val);
                     } else {
-                        $builder->orWhere("$rootAlias.$key !=", $val);
+                        $builder->orWhere("{$rootAlias}.{$key} !=", $val);
                     }
+
                     continue;
                 }
 
-                if (!$globalIsOr) {
-                    $builder->whereNotIn("$rootAlias.$key", $value);
+                if (! $globalIsOr) {
+                    $builder->whereNotIn("{$rootAlias}.{$key}", $value);
                 } else {
-                    $builder->orWhereNotIn("$rootAlias.$key", $value);
+                    $builder->orWhereNotIn("{$rootAlias}.{$key}", $value);
                 }
             }
+
             return;
         }
 
@@ -272,44 +277,47 @@ final class QueryBuilder
             foreach ($arr as $value) {
                 if (self::isAssociative($value)) {
                     $whereVal = self::validateWhereValue($value);
-                    $val = $whereVal->value;
-                    $isOr = $whereVal->or;
+                    $val      = $whereVal->value;
+                    $isOr     = $whereVal->or;
 
                     if (is_array($val)) {
                         if (self::isAssociative($val)) {
                             self::applyWhereOnWhereValue($builder, $key, $val, $rootAlias, $isOr, $isWhereIn);
+
                             continue;
                         }
 
-                        if (!$isOr) {
-                            $builder->whereIn("$rootAlias.$key", $val);
+                        if (! $isOr) {
+                            $builder->whereIn("{$rootAlias}.{$key}", $val);
                         } else {
-                            $builder->orWhereIn("$rootAlias.$key", $val);
+                            $builder->orWhereIn("{$rootAlias}.{$key}", $val);
                         }
+
                         continue;
                     }
 
-                    if (!$isOr) {
-                        $builder->where("$rootAlias.$key", $val);
+                    if (! $isOr) {
+                        $builder->where("{$rootAlias}.{$key}", $val);
                     } else {
-                        $builder->orWhere("$rootAlias.$key", $val);
+                        $builder->orWhere("{$rootAlias}.{$key}", $val);
                     }
                 } else {
-                    // non-associative array means it's a whereIn clause                    
-                    if (!$globalIsOr) {
-                        $builder->whereIn("$rootAlias.$key", $value);
+                    // non-associative array means it's a whereIn clause
+                    if (! $globalIsOr) {
+                        $builder->whereIn("{$rootAlias}.{$key}", $value);
                     } else {
-                        $builder->orWhereIn("$rootAlias.$key", $value);
+                        $builder->orWhereIn("{$rootAlias}.{$key}", $value);
                     }
                 }
             }
+
             return;
         }
 
-        if (!$globalIsOr) {
-            $builder->where("$rootAlias.$key", $arr);
+        if (! $globalIsOr) {
+            $builder->where("{$rootAlias}.{$key}", $arr);
         } else {
-            $builder->orWhere("$rootAlias.$key", $arr);
+            $builder->orWhere("{$rootAlias}.{$key}", $arr);
         }
     }
 

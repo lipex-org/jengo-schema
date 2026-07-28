@@ -4,18 +4,17 @@ declare(strict_types=1);
 
 namespace Jengo\Schema\Debug;
 
-use CodeIgniter\Database\BaseConnection;
 use Config\Database;
 
 final class QueryLogger
 {
     private static bool $enabled = false;
-    private static array $logs = [];
+    private static array $logs   = [];
 
     public static function enable(): void
     {
         self::$enabled = true;
-        self::$logs = [];
+        self::$logs    = [];
     }
 
     public static function disable(): void
@@ -25,7 +24,7 @@ final class QueryLogger
 
     public static function record(): void
     {
-        if (!self::$enabled) {
+        if (! self::$enabled) {
             return;
         }
 
@@ -33,19 +32,19 @@ final class QueryLogger
 
         $query = $db->getLastQuery();
 
-        if (!$query) {
+        if (! $query) {
             return;
         }
 
         self::$logs[] = [
-            'sql' => $query->getQuery(),
+            'sql'      => $query->getQuery(),
             'duration' => $query->getDuration(),
         ];
     }
 
     public static function add(string $key, mixed $data = null): void
     {
-        if (!self::$enabled) {
+        if (! self::$enabled) {
             return;
         }
 
@@ -54,11 +53,11 @@ final class QueryLogger
 
     public static function append(string $key, mixed $data = null): void
     {
-        if (!self::$enabled) {
+        if (! self::$enabled) {
             return;
         }
 
-        if (!isset(self::$logs[$key])) {
+        if (! isset(self::$logs[$key])) {
             self::$logs[$key] = [];
         }
 
@@ -67,11 +66,11 @@ final class QueryLogger
 
     public static function prepend(string $key, mixed $data = null): void
     {
-        if (!self::$enabled) {
+        if (! self::$enabled) {
             return;
         }
 
-        if (!isset(self::$logs[$key])) {
+        if (! isset(self::$logs[$key])) {
             self::$logs[$key] = [];
         }
 
@@ -85,7 +84,7 @@ final class QueryLogger
 
     public static function flush(): array
     {
-        $logs = self::$logs;
+        $logs       = self::$logs;
         self::$logs = [];
 
         return $logs;

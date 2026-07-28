@@ -45,14 +45,13 @@ class Schema extends BaseConfig
     public bool $includeNextAndPrevious = true;
 
     public bool $includePaginationMore = true;
-
-    public string $defaultMoreLabel = '...';
+    public string $defaultMoreLabel    = '...';
 
     public function __construct()
     {
         parent::__construct();
 
         $this->paginationOptions = new PaginationOptions();
-        $this->sortOptions = new SortOptions();
+        $this->sortOptions       = new SortOptions();
     }
 }

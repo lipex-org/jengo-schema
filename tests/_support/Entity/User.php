@@ -8,7 +8,7 @@ use CodeIgniter\Entity\Entity;
 
 final class User extends Entity
 {
-    protected $datamap = [];
+    protected $datamap    = [];
     protected $attributes = [];
-    protected $casts = [];
+    protected $casts      = [];
 }

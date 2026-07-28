@@ -15,10 +15,10 @@ final class UserFileModel extends Model
     public function fake(Generator $generator): array
     {
         return [
-            'name' => $generator->text(5),
-            'size' => $generator->randomFloat(max: 20),
-            'user_id' => $generator->numberBetween(1, 10),
-            'path' => $generator->text(16),
+            'name'       => $generator->text(5),
+            'size'       => $generator->randomFloat(max: 20),
+            'user_id'    => $generator->numberBetween(1, 10),
+            'path'       => $generator->text(16),
             'created_at' => Time::now()->toDateTimeString(),
             'updated_at' => Time::now()->toDateTimeString(),
         ];

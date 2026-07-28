@@ -8,7 +8,7 @@ final class PropertyType
 {
     public function __construct(
         public array $types,
-        public bool $allowsNull
+        public bool $allowsNull,
     ) {
     }
 
@@ -30,10 +30,11 @@ final class PropertyType
     public function hasClass(): bool
     {
         foreach ($this->types as $type) {
-            if ($type !== 'mixed' && !in_array($type, ['int', 'float', 'string', 'bool', 'array', 'object', 'null'])) {
+            if ($type !== 'mixed' && ! in_array($type, ['int', 'float', 'string', 'bool', 'array', 'object', 'null'], true)) {
                 return true;
             }
         }
+
         return false;
     }
 
@@ -42,23 +43,26 @@ final class PropertyType
      */
     public function canAccept(mixed $value): bool
     {
-        if ($value === null)
+        if ($value === null) {
             return $this->allowsNull;
+        }
 
         $valueType = gettype($value);
         // Normalize 'double' to 'float' and 'integer' to 'int' for PHP consistency
         $valueType = match ($valueType) {
-            'double' => 'float',
+            'double'  => 'float',
             'integer' => 'int',
             'boolean' => 'bool',
-            default => $valueType
+            default   => $valueType,
         };
 
         foreach ($this->types as $type) {
-            if ($type === 'mixed' || $valueType === $type)
+            if ($type === 'mixed' || $valueType === $type) {
                 return true;
-            if (is_object($value) && $value instanceof $type)
+            }
+            if (is_object($value) && $value instanceof $type) {
                 return true;
+            }
         }
 
         return false;

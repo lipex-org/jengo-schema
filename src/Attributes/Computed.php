@@ -14,7 +14,8 @@ final class Computed
         public string $name,
         /**
          * Fields this computed field depend on
-         * @var string[]
+         *
+         * @var list<string>
          */
         public array $dependants = [],
         public ?Cast $cast = null,

@@ -7,6 +7,7 @@ namespace Jengo\Schema\Commands\Variants\Schema;
 use CodeIgniter\CLI\CLI;
 use Jengo\Base\Commands\Contracts\CommandVariantInterface;
 use Tatter\Schemas\Drafter\Handlers\DatabaseHandler;
+use Throwable;
 
 class GenerateVariant implements CommandVariantInterface
 {
@@ -38,20 +39,21 @@ class GenerateVariant implements CommandVariantInterface
         CLI::write('Drafting database schema...', 'cyan');
 
         try {
-            $db = (defined('ENVIRONMENT') && ENVIRONMENT === 'testing') ? 'tests' : 'default';
+            $db      = (defined('ENVIRONMENT') && ENVIRONMENT === 'testing') ? 'tests' : 'default';
             $handler = new DatabaseHandler(null, $db);
             $schemas = service('schemas');
-            $schema = $schemas->draft($handler)->get();
-        } catch (\Throwable $e) {
+            $schema  = $schemas->draft($handler)->get();
+        } catch (Throwable $e) {
             CLI::error('Failed to map database: ' . $e->getMessage());
+
             return;
         }
 
         $targetTable = CLI::getOption('table');
-        $force = CLI::getOption('force') !== null;
+        $force       = CLI::getOption('force') !== null;
 
         $outputDir = APPPATH . 'Schemas';
-        if (!is_dir($outputDir)) {
+        if (! is_dir($outputDir)) {
             mkdir($outputDir, 0755, true);
         }
 
@@ -68,22 +70,23 @@ class GenerateVariant implements CommandVariantInterface
                 continue;
             }
 
-            $singularName = pascalize(singular($tableName));
+            $singularName    = pascalize(singular($tableName));
             $schemaClassName = $singularName . 'Schema';
-            $filePath = $outputDir . '/' . $schemaClassName . '.php';
+            $filePath        = $outputDir . '/' . $schemaClassName . '.php';
 
-            if (file_exists($filePath) && !$force) {
+            if (file_exists($filePath) && ! $force) {
                 CLI::write("Skipping existing schema file for [{$tableName}] at [{$filePath}]. Use --force to overwrite.", 'yellow');
+
                 continue;
             }
 
             // Guess Model Class name
-            $modelClass = "App\\Models\\{$singularName}Model";
+            $modelClass  = "App\\Models\\{$singularName}Model";
             $entityClass = "App\\Entities\\{$singularName}";
 
             // Map Primary Key & Fields
-            $fieldsBlock = "";
-            $primaryKey = null;
+            $fieldsBlock = '';
+            $primaryKey  = null;
 
             foreach ($table->fields as $field) {
                 $type = $this->mapPhpType($field->type ?? 'string');
@@ -98,25 +101,26 @@ class GenerateVariant implements CommandVariantInterface
             }
 
             // Map Relations
-            $relationsBlock = "";
+            $relationsBlock = '';
+
             foreach ($table->relations as $relation) {
-                $relSingular = pascalize(singular($relation->table));
+                $relSingular    = pascalize(singular($relation->table));
                 $relSchemaClass = $relSingular . 'Schema';
 
                 $fromField = '';
-                $toField = '';
+                $toField   = '';
 
-                if (!empty($relation->pivots)) {
-                    $pivot = $relation->pivots[0];
+                if (! empty($relation->pivots)) {
+                    $pivot     = $relation->pivots[0];
                     $fromField = $pivot[1];
-                    $toField = $pivot[3];
+                    $toField   = $pivot[3];
                 } else {
                     if ($relation->type === 'belongsTo') {
                         $fromField = singular($relation->table) . '_id';
-                        $toField = $primaryKey ?? 'id';
+                        $toField   = $primaryKey ?? 'id';
                     } else {
                         $fromField = $primaryKey ?? 'id';
-                        $toField = singular($tableName) . '_id';
+                        $toField   = singular($tableName) . '_id';
                     }
                 }
 
@@ -186,11 +190,12 @@ class GenerateVariant implements CommandVariantInterface
     private function mapPhpType(string $dbType): string
     {
         $dbType = strtolower($dbType);
+
         return match ($dbType) {
             'int', 'integer', 'tinyint', 'smallint', 'mediumint', 'bigint' => 'int',
-            'float', 'double', 'decimal', 'numeric', 'real' => 'float',
-            'boolean', 'bool' => 'bool',
-            default => 'string',
+            'float', 'double', 'decimal', 'numeric', 'real'                => 'float',
+            'boolean', 'bool'                                              => 'bool',
+            default                                                        => 'string',
         };
     }
 }
