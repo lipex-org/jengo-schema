@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5764bc2f0f1e9531cab48aa7cba3bff1",
+    "content-hash": "fd4b959490ad062561d3e09fa03e427b",
     "packages": [
         {
             "name": "codeigniter4/framework",
@@ -85,11 +85,17 @@
         },
         {
             "name": "jengo/base",
-            "version": "dev-main",
+            "version": "v1.1.52",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/lipex-org/jengo-base.git",
+                "reference": "ec023717ea459847c88061faa0958b2218a7675a"
+            },
             "dist": {
-                "type": "path",
-                "url": "../base",
-                "reference": "4809b7cfca25a9ad657964489fbfd977a0329605"
+                "type": "zip",
+                "url": "https://api.github.com/repos/lipex-org/jengo-base/zipball/ec023717ea459847c88061faa0958b2218a7675a",
+                "reference": "ec023717ea459847c88061faa0958b2218a7675a",
+                "shasum": ""
             },
             "require": {
                 "codeigniter4/framework": "^4.7",
@@ -101,26 +107,16 @@
             },
             "type": "library",
             "autoload": {
-                "psr-4": {
-                    "Jengo\\Base\\": "src/",
-                    "Jengo\\Base\\Vite\\": "src/Vite/"
-                },
                 "files": [
                     "src/functions.php",
                     "src/Support/functions.php"
-                ]
-            },
-            "autoload-dev": {
+                ],
                 "psr-4": {
-                    "Tests\\": "tests/",
-                    "Tests\\Support\\": "tests/_support/"
+                    "Jengo\\Base\\": "src/",
+                    "Jengo\\Base\\Vite\\": "src/Vite/"
                 }
             },
-            "scripts": {
-                "test": [
-                    "phpunit"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -131,9 +127,11 @@
                 }
             ],
             "description": "Modern web development library for CodeIgniter 4 with Vite, modules, unified setups, and automated CLI installer.",
-            "transport-options": {
-                "relative": true
-            }
+            "support": {
+                "issues": "https://github.com/lipex-org/jengo-base/issues",
+                "source": "https://github.com/lipex-org/jengo-base/tree/v1.1.52"
+            },
+            "time": "2026-07-25T19:58:43+00:00"
         },
         {
             "name": "laminas/laminas-escaper",
