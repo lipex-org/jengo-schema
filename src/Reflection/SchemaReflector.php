@@ -26,8 +26,14 @@ final class SchemaReflector
 {
     public static function reflect(string $schemaClass): SchemaMetadata
     {
-        if (!class_exists($schemaClass)) {
-            throw new RuntimeException("Schema class {$schemaClass} does not exist.");
+        if (!class_exists($schemaClass) || is_subclass_of($schemaClass, \CodeIgniter\Model::class)) {
+            $virtualMeta = VirtualSchemaResolver::resolve($schemaClass);
+            if ($virtualMeta !== null) {
+                return $virtualMeta;
+            }
+            if (!class_exists($schemaClass)) {
+                throw new RuntimeException("Schema class {$schemaClass} does not exist.");
+            }
         }
 
         $reflection = new ReflectionClass($schemaClass);

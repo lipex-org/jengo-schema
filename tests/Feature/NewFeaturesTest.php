@@ -304,4 +304,80 @@ final class NewFeaturesTest extends TestCase
         $this->assertSame('Charlie', $result->data[0]->first_name);
         $this->assertSame('charlie_report.pdf', $result->data[0]->files[0]->name);
     }
+
+    public function testVirtualSchemaQueryFromModelAndTable()
+    {
+        $userId = $this->db->table('users')->insert([
+            'first_name' => 'Charlie',
+            'last_name' => 'Brown',
+            'email' => 'charlie@example.com'
+        ]);
+
+        $this->db->table('user_files')->insert([
+            'name' => 'charlie_report.pdf',
+            'size' => 2048.0,
+            'path' => '/docs/charlie_report.pdf',
+            'user_id' => $userId
+        ]);
+
+        $result = query(\Tests\Support\Models\UserModel::class)
+            ->where('first_name', 'Charlie')
+            ->get();
+
+        $this->assertCount(1, $result->data);
+        $this->assertSame('Charlie', $result->data[0]->first_name);
+
+        $result2 = query('users')
+            ->derive('user_files')
+            ->where('first_name', 'Charlie')
+            ->get();
+
+        $this->assertCount(1, $result2->data);
+        $this->assertSame('Charlie', $result2->data[0]->first_name);
+        $this->assertSame('charlie_report.pdf', $result2->data[0]->user_files[0]->name);
+    }
+
+    public function testQueryRuntimeEntitySpecification()
+    {
+        $userId = $this->db->table('users')->insert([
+            'first_name' => 'Charlie',
+            'last_name' => 'Brown',
+            'email' => 'charlie2@example.com'
+        ]);
+
+        $result = query('users')
+            ->as(\Tests\Support\Entity\User::class)
+            ->where('first_name', 'Charlie')
+            ->get();
+
+        $this->assertCount(1, $result->data);
+        $this->assertInstanceOf(\Tests\Support\Entity\User::class, $result->data[0]);
+        $this->assertSame('Charlie', $result->data[0]->first_name);
+    }
+
+    public function testGlobalConfigEntityMapping()
+    {
+        $this->db->table('users')->insert([
+            'first_name' => 'Charlie',
+            'last_name' => 'Brown',
+            'email' => 'charlie3@example.com'
+        ]);
+
+        $config = config('Schema');
+        $config->entityMap = [
+            'users' => User::class
+        ];
+
+        cache()->clean();
+
+        $result = query('users')
+            ->where('first_name', 'Charlie')
+            ->get();
+
+        $this->assertCount(1, $result->data);
+        $this->assertInstanceOf(User::class, $result->data[0]);
+        $this->assertSame('Charlie', $result->data[0]->first_name);
+
+        $config->entityMap = [];
+    }
 }

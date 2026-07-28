@@ -23,7 +23,7 @@ final class ComputedValueResolver
          */
         $plan = Query::get(QueryPlan::class);
         $schema = $node->schema;
-        $schemaClass = new $schema->schemaClass();
+        $schemaClass = class_exists($schema->schemaClass) ? new $schema->schemaClass() : new \stdClass();
         $alias = AliasGenerator::for($node);
         $allViableDependecies = array_merge(
             $plan->selectsRaw[$alias] ?? [],

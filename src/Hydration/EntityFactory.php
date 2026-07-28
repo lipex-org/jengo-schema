@@ -11,9 +11,9 @@ final class EntityFactory
     /**
      * Convert a hydrated array into entity objects
      */
-    public static function make(Node $node, array $data): mixed
+    public static function make(Node $node, array $data, ?string $overrideEntityClass = null): mixed
     {
-        $entityClass = $node->schema->entityClass;
+        $entityClass = $overrideEntityClass ?? $node->schema->entityClass;
 
         if ($entityClass && class_exists($entityClass)) {
             $entity = new $entityClass();

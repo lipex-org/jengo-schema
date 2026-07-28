@@ -16,6 +16,7 @@ final class QueryOptions
         public readonly ?bool $logger = null,
         public readonly bool $first = false,
         public readonly array $allowedCapabilities = ['pagination'],
+        public readonly ?string $entityClass = null,
     ) {
     }
 }

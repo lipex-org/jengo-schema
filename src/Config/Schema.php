@@ -35,6 +35,11 @@ class Schema extends BaseConfig
     public array $whereCallbacks = [];
 
     /**
+     * Map raw database table names to default entity classes for virtual schemas.
+     */
+    public array $entityMap = [];
+
+    /**
      * Pagination UI / link-generation policy
      */
     public bool $includeNextAndPrevious = true;

@@ -39,6 +39,7 @@ final class FluentQueryAPI
     private QueryMode $mode = QueryMode::INLINE;
     private string $paginationGroup = 'default';
     private array $allowedCapabilities = ['pagination'];
+    private ?string $entityClass = null;
 
     public function __construct(
         private readonly string $schema
@@ -53,6 +54,15 @@ final class FluentQueryAPI
     public function mode(QueryMode $mode): self
     {
         $this->mode = $mode;
+        return $this;
+    }
+
+    /**
+     * Specify the target entity class for hydration at runtime.
+     */
+    public function as(string $entityClass): self
+    {
+        $this->entityClass = $entityClass;
         return $this;
     }
 
@@ -603,7 +613,8 @@ final class FluentQueryAPI
             ),
             logger: $this->logger,
             first: $first,
-            allowedCapabilities: $this->allowedCapabilities
+            allowedCapabilities: $this->allowedCapabilities,
+            entityClass: $this->entityClass
         );
 
         return Query::run($this->schema, $options, $this->mode);

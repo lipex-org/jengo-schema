@@ -27,6 +27,11 @@
     "codeigniter4/devkit": "^1.3",
     "phpunit/phpunit": "^11.5"
   },
+  "require": {
+    "codeigniter4/framework": "^4.6",
+    "jengo/base": "*",
+    "tatter/schemas": "^2.0"
+  },
   "minimum-stability": "dev",
   "prefer-stable": true,
   "config": {
@@ -34,11 +39,14 @@
       "phpstan/extension-installer": true
     }
   },
+  "repositories": [
+    {
+      "type": "path",
+      "url": "../base"
+    }
+  ],
   "scripts": {
     "cs-fix": "php-cs-fixer fix --ansi --verbose --diff",
     "test": "phpunit --colors=always"
-  },
-  "require": {
-    "codeigniter4/framework": "^4.6"
   }
 }

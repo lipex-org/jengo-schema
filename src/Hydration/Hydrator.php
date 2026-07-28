@@ -106,7 +106,7 @@ final class Hydrator
             if (!is_array($d)) {
                 continue;
             }
-            $result[] = EntityFactory::make($this->node, $d);
+            $result[] = EntityFactory::make($this->node, $d, $this->options->entityClass);
         }
 
         $data = $this->options->first ? $result[0] ?? null : $result;

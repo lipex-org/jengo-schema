@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Tests;
 
+use CodeIgniter\CLI\CLI;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\Fabricator;
+use CodeIgniter\Test\Mock\MockInputOutput;
 use Config\Database;
 use Tests\Support\Models\ProfileModel;
 use Tests\Support\Models\UserFileModel;
@@ -23,6 +25,10 @@ class TestCase extends CIUnitTestCase
 
     protected bool $fill = true;
 
+    protected MockInputOutput $io;
+
+    protected array $cliOutputs;
+
     public function setUp(): void
     {
         $this->loadDependencies();
@@ -31,6 +37,10 @@ class TestCase extends CIUnitTestCase
         if ($this->fill) {
             $this->generateData();
         }
+
+        $this->io = new MockInputOutput();
+
+        CLI::setInputOutput($this->io);
     }
 
     public function tearDown(): void
@@ -38,6 +48,10 @@ class TestCase extends CIUnitTestCase
         $this->regressDatabase();
         $this->loadDependencies();
         $this->migrateDatabase();
+
+        $this->cliOutputs = $this->io->getOutputs();
+
+        CLI::resetInputOutput();
     }
 
     private function generateData(): void
