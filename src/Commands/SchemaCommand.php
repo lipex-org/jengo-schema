@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Jengo\Base\Commands;
+namespace Jengo\Schema\Commands;
 
 use Jengo\Base\Commands\Core\AbstractMasterCommand;
 

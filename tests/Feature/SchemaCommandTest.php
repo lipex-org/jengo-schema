@@ -28,8 +28,8 @@ final class SchemaCommandTest extends TestCase
     {
         $forge = Database::forge('tests');
         $forge->addField([
-            'id'      => ['type' => 'INTEGER', 'auto_increment' => true],
-            'title'   => ['type' => 'VARCHAR', 'constraint' => 255],
+            'id' => ['type' => 'INTEGER', 'auto_increment' => true],
+            'title' => ['type' => 'VARCHAR', 'constraint' => 255],
             'user_id' => ['type' => 'INTEGER', 'null' => true],
         ]);
         $forge->addPrimaryKey('id');
