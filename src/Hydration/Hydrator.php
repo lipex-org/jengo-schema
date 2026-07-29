@@ -21,7 +21,7 @@ use Jengo\Schema\Support\PaginationUtils;
 final class Hydrator
 {
     private array $data                     = [];
-    private array|Entity|null $resolvedData = null;
+    private object|array|null $resolvedData = null;
     private ?int $total                     = null;
     private QueryOptions $options;
     private QueryPlan $plan;
