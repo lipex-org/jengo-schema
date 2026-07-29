@@ -103,11 +103,17 @@ final class VirtualSchemaResolver
             $safeName   = ucfirst($safeName);
             $modelClass = "Jengo\\Schema\\Dynamic\\{$safeName}Model";
             if (! class_exists($modelClass)) {
+                $fieldsList = [];
+                foreach ($table->fields as $f) {
+                    $fieldsList[] = $f->name;
+                }
+                $allowedStr = "['" . implode("', '", $fieldsList) . "']";
                 eval("
                     namespace Jengo\\Schema\\Dynamic;
                     class {$safeName}Model extends \\CodeIgniter\\Model {
                         protected \$table = '{$tableName}';
                         protected \$returnType = 'object';
+                        protected \$allowedFields = {$allowedStr};
                     }
                 ");
             }
