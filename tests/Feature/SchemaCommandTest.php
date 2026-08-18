@@ -35,7 +35,8 @@ final class SchemaCommandTest extends TestCase
         $forge->addPrimaryKey('id');
         $forge->createTable('temp_test_table', true);
 
-        command('jengo:schema generate --table temp_test_table --with-vendor');
+        $tsDir = SUPPORTPATH . 'ts_schemas';
+        command("jengo:schema generate --table temp_test_table --with-vendor --ts --ts-dir={$tsDir}");
 
         $filePath = APPPATH . 'Schemas/TempTestTableSchema.php';
         $this->assertFileExists($filePath);
@@ -44,6 +45,21 @@ final class SchemaCommandTest extends TestCase
         $this->assertStringContainsString('class TempTestTableSchema', $content);
         $this->assertStringContainsString('public int $id;', $content);
         $this->assertStringContainsString('public string $title;', $content);
+
+        // Verify TS Interface
+        $tsFilePath = $tsDir . '/TempTestTableSchema.ts';
+        $this->assertFileExists($tsFilePath);
+        $tsContent = file_get_contents($tsFilePath);
+        $this->assertStringContainsString('export interface TempTestTableSchema', $tsContent);
+        $this->assertStringContainsString('id: number;', $tsContent);
+        $this->assertStringContainsString('title: string;', $tsContent);
+        $this->assertStringContainsString('user_id: number | null;', $tsContent);
+
+        // Verify TS Index
+        $indexFilePath = $tsDir . '/index.ts';
+        $this->assertFileExists($indexFilePath);
+        $indexContent = file_get_contents($indexFilePath);
+        $this->assertStringContainsString("export * from './TempTestTableSchema';", $indexContent);
 
         $forge = Database::forge('tests');
         $forge->dropTable('temp_test_table', true);
@@ -54,6 +70,17 @@ final class SchemaCommandTest extends TestCase
         $schemaFile = APPPATH . 'Schemas/TempTestTableSchema.php';
         if (file_exists($schemaFile)) {
             unlink($schemaFile);
+        }
+
+        $tsDir = SUPPORTPATH . 'ts_schemas';
+        if (is_dir($tsDir)) {
+            $files = glob($tsDir . '/*');
+            foreach ($files as $file) {
+                if (is_file($file)) {
+                    unlink($file);
+                }
+            }
+            rmdir($tsDir);
         }
     }
 }

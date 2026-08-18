@@ -32,13 +32,15 @@ class GenerateVariant implements CommandVariantInterface
     public function options(): array
     {
         return [
-            '--table' => 'Generate schema for a specific table only',
-            '--force' => 'Force overwrite of existing schema files',
-            '--dbgroup' => 'Specify the database group to connect to (Defaults to tests in testing, default otherwise)',
-            '--namespace' => 'Specify custom namespace for the generated schema classes',
-            '--dir' => 'Specify custom directory where schema classes should be saved',
-            '--dry-run' => 'Simulate the generation without creating/modifying files on disk',
+            '--table'       => 'Generate schema for a specific table only',
+            '--force'       => 'Force overwrite of existing schema files',
+            '--dbgroup'     => 'Specify the database group to connect to (Defaults to tests in testing, default otherwise)',
+            '--namespace'   => 'Specify custom namespace for the generated schema classes',
+            '--dir'         => 'Specify custom directory where schema classes should be saved',
+            '--dry-run'     => 'Simulate the generation without creating/modifying files on disk',
             '--with-vendor' => 'Generate schemas for vendor/system models as well (defaults to false)',
+            '--ts'          => 'Generate TypeScript interfaces alongside Jengo Schema classes',
+            '--ts-dir'      => 'Specify custom directory for TypeScript types (defaults to resources/js/types/schemas)',
         ];
     }
 
@@ -141,6 +143,48 @@ class GenerateVariant implements CommandVariantInterface
         if (!$dryRun && !is_dir($outputDir)) {
             mkdir($outputDir, 0755, true);
         }
+
+        // Resolve TypeScript options
+        $tsOption = $params['ts'] ?? null;
+        if ($tsOption === null) {
+            foreach ($params as $k => $v) {
+                if (strpos((string)$k, 'ts=') === 0) {
+                    $tsOption = substr((string)$k, strlen('ts='));
+                    break;
+                }
+            }
+        }
+        if ($tsOption === null) {
+            $tsOption = CLI::getOption('ts');
+        }
+        $generateTs = array_key_exists('ts', $params) || $tsOption !== null;
+        if ($tsOption === 'false' || $tsOption === false) {
+            $generateTs = false;
+        }
+        if ($tsOption === null && !array_key_exists('ts', $params)) {
+            $generateTs = $config->generateTypeScript ?? false;
+        }
+
+        $tsDirOption = $params['ts-dir'] ?? null;
+        if ($tsDirOption === null) {
+            foreach ($params as $k => $v) {
+                if (strpos((string)$k, 'ts-dir=') === 0) {
+                    $tsDirOption = substr((string)$k, strlen('ts-dir='));
+                    break;
+                }
+            }
+        }
+        if ($tsDirOption === null) {
+            $tsDirOption = CLI::getOption('ts-dir');
+        }
+        $tsOutputDir = $tsDirOption ?: ($config->typeScriptDirectory ?? ROOTPATH . 'resources/js/types/schemas');
+        $tsOutputDir = rtrim($tsOutputDir, '/');
+
+        if ($generateTs && !$dryRun && !is_dir($tsOutputDir)) {
+            mkdir($tsOutputDir, 0755, true);
+        }
+
+        $tsExports = [];
 
         helper('inflector');
 
@@ -391,6 +435,48 @@ class GenerateVariant implements CommandVariantInterface
             $template = rtrim($template, "\n") . "\n";
             $template .= "}\n";
 
+            if ($generateTs) {
+                $tsFieldsBlock = '';
+                $tsImports = [];
+
+                foreach ($table->fields as $field) {
+                    $tsType = $this->mapTsType($field->type ?? 'string');
+                    $isPrimaryKey = $field->primary_key || ($mapped && isset($mapped['primary_key']) && $mapped['primary_key'] === $field->name);
+                    $isNullable = !$isPrimaryKey && (!empty($field->nullable) || (isset($field->null) && $field->null === true));
+                    $tsFieldsBlock .= "  {$field->name}: {$tsType}" . ($isNullable ? ' | null' : '') . ";\n";
+                }
+
+                foreach ($table->relations as $relation) {
+                    $relSingular = pascalize(singular($relation->table));
+                    $relSchemaClass = $relSingular . 'Schema';
+                    $tsImports[] = "import { {$relSchemaClass} } from './{$relSchemaClass}';";
+                    if ($relation->type === 'belongsTo') {
+                        $tsFieldsBlock .= "  {$relation->table}?: {$relSchemaClass};\n";
+                    } else {
+                        $tsFieldsBlock .= "  {$relation->table}?: {$relSchemaClass}[];\n";
+                    }
+                }
+
+                $tsImports = array_unique($tsImports);
+                $tsContent = "";
+                if (!empty($tsImports)) {
+                    $tsContent .= implode("\n", $tsImports) . "\n\n";
+                }
+                $tsContent .= "export interface {$schemaClassName} {\n";
+                $tsContent .= $tsFieldsBlock;
+                $tsContent .= "}\n";
+
+                $tsFilePath = $tsOutputDir . '/' . $schemaClassName . '.ts';
+
+                if ($dryRun) {
+                    CLI::write("  [dry-run] Would generate TS interface: [{$schemaClassName}] -> [{$tsFilePath}]", 'yellow');
+                } else {
+                    file_put_contents($tsFilePath, $tsContent);
+                    CLI::write("Generated TS interface: [{$schemaClassName}] -> [{$tsFilePath}]", 'green');
+                }
+                $tsExports[] = $schemaClassName;
+            }
+
             if ($dryRun) {
                 CLI::write("  [dry-run] Would generate schema: [{$schemaClassName}] -> [{$filePath}]", 'yellow');
                 $generatedCount++;
@@ -400,6 +486,21 @@ class GenerateVariant implements CommandVariantInterface
             file_put_contents($filePath, $template);
             CLI::write("Generated schema: [{$schemaClassName}] -> [{$filePath}]", 'green');
             $generatedCount++;
+        }
+
+        if ($generateTs && !empty($tsExports)) {
+            $indexContent = '';
+            foreach ($tsExports as $exportName) {
+                $indexContent .= "export * from './{$exportName}';\n";
+            }
+            $indexFilePath = $tsOutputDir . '/index.ts';
+
+            if ($dryRun) {
+                CLI::write("  [dry-run] Would generate TS index: [{$indexFilePath}]", 'yellow');
+            } else {
+                file_put_contents($indexFilePath, $indexContent);
+                CLI::write("Generated TS index: [{$indexFilePath}]", 'green');
+            }
         }
 
         if ($dryRun) {
@@ -417,6 +518,19 @@ class GenerateVariant implements CommandVariantInterface
             'int', 'integer', 'tinyint', 'smallint', 'mediumint', 'bigint' => 'int',
             'float', 'double', 'decimal', 'numeric', 'real' => 'float',
             'boolean', 'bool' => 'bool',
+            default => 'string',
+        };
+    }
+
+    private function mapTsType(string $dbType): string
+    {
+        $dbType = strtolower($dbType);
+
+        return match ($dbType) {
+            'int', 'integer', 'tinyint', 'smallint', 'mediumint', 'bigint' => 'number',
+            'float', 'double', 'decimal', 'numeric', 'real' => 'number',
+            'boolean', 'bool' => 'boolean',
+            'json', 'jsonb' => 'any',
             default => 'string',
         };
     }

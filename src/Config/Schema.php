@@ -44,6 +44,8 @@ class Schema extends BaseConfig
      */
     public string $generatorNamespace = 'App\\Schemas';
     public string $generatorDirectory = APPPATH . 'Schemas';
+    public bool $generateTypeScript    = false;
+    public string $typeScriptDirectory = ROOTPATH . 'resources/js/types/schemas';
 
     /**
      * Pagination UI / link-generation policy
