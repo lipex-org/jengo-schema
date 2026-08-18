@@ -50,8 +50,8 @@ class GenerateVariant implements CommandVariantInterface
         $dbGroup = $params['dbgroup'] ?? null;
         if ($dbGroup === null) {
             foreach ($params as $k => $v) {
-                if (strpos((string)$k, 'dbgroup=') === 0) {
-                    $dbGroup = substr((string)$k, strlen('dbgroup='));
+                if (strpos((string) $k, 'dbgroup=') === 0) {
+                    $dbGroup = substr((string) $k, strlen('dbgroup='));
                     break;
                 }
             }
@@ -78,8 +78,8 @@ class GenerateVariant implements CommandVariantInterface
         $targetTable = $params['table'] ?? CLI::getOption('table');
         if ($targetTable === null) {
             foreach ($params as $k => $v) {
-                if (strpos((string)$k, 'table=') === 0) {
-                    $targetTable = substr((string)$k, strlen('table='));
+                if (strpos((string) $k, 'table=') === 0) {
+                    $targetTable = substr((string) $k, strlen('table='));
                     break;
                 }
             }
@@ -92,8 +92,8 @@ class GenerateVariant implements CommandVariantInterface
         $withVendorVal = $params['with-vendor'] ?? null;
         if ($withVendorVal === null) {
             foreach ($params as $k => $v) {
-                if (strpos((string)$k, 'with-vendor=') === 0) {
-                    $withVendorVal = substr((string)$k, strlen('with-vendor='));
+                if (strpos((string) $k, 'with-vendor=') === 0) {
+                    $withVendorVal = substr((string) $k, strlen('with-vendor='));
                     break;
                 }
             }
@@ -111,8 +111,8 @@ class GenerateVariant implements CommandVariantInterface
         $nsOption = $params['namespace'] ?? null;
         if ($nsOption === null) {
             foreach ($params as $k => $v) {
-                if (strpos((string)$k, 'namespace=') === 0) {
-                    $nsOption = substr((string)$k, strlen('namespace='));
+                if (strpos((string) $k, 'namespace=') === 0) {
+                    $nsOption = substr((string) $k, strlen('namespace='));
                     break;
                 }
             }
@@ -126,8 +126,8 @@ class GenerateVariant implements CommandVariantInterface
         $dirOption = $params['dir'] ?? null;
         if ($dirOption === null) {
             foreach ($params as $k => $v) {
-                if (strpos((string)$k, 'dir=') === 0) {
-                    $dirOption = substr((string)$k, strlen('dir='));
+                if (strpos((string) $k, 'dir=') === 0) {
+                    $dirOption = substr((string) $k, strlen('dir='));
                     break;
                 }
             }
@@ -162,7 +162,13 @@ class GenerateVariant implements CommandVariantInterface
                             $getReturnType = \Closure::bind(function ($model) {
                                 return $model->returnType;
                             }, null, $modelInstance);
+
+                            $getPrimaryKey = \Closure::bind(function ($model) {
+                                return $model->primaryKey;
+                            }, null, $modelInstance);
+
                             $entity = $getReturnType($modelInstance);
+                            $primaryKey = $getPrimaryKey($modelInstance);
                             if ($entity === 'object' || $entity === 'array') {
                                 $entity = null;
                             }
@@ -170,6 +176,7 @@ class GenerateVariant implements CommandVariantInterface
                                 $modelMap[strtolower($table)] = [
                                     'model' => $className,
                                     'entity' => $entity,
+                                    'primary_key' => $primaryKey,
                                 ];
                             }
                         } catch (Throwable $e) {
@@ -277,7 +284,9 @@ class GenerateVariant implements CommandVariantInterface
                     $commentBlock = "    /**\n     * " . str_replace("\n", "\n     * ", trim($field->comment)) . "\n     */\n";
                 }
 
-                if ($field->primary_key) {
+                $isPrimaryKey = $field->primary_key || ($mapped && isset($mapped['primary_key']) && $mapped['primary_key'] === $field->name);
+
+                if ($isPrimaryKey) {
                     $fieldsBlock .= $commentBlock;
                     $fieldsBlock .= "    #[PrimaryKey()]\n";
                     $fieldsBlock .= "    public {$type} \${$field->name};\n\n";
