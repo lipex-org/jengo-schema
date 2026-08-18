@@ -35,7 +35,7 @@ final class SchemaCommandTest extends TestCase
         $forge->addPrimaryKey('id');
         $forge->createTable('temp_test_table', true);
 
-        command('jengo:schema generate --table temp_test_table');
+        command('jengo:schema generate --table temp_test_table --with-vendor');
 
         $filePath = APPPATH . 'Schemas/TempTestTableSchema.php';
         $this->assertFileExists($filePath);

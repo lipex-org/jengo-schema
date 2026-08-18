@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Jengo\Schema\Commands\Variants\Schema;
 
+use CodeIgniter\Autoloader\FileLocator;
 use CodeIgniter\CLI\CLI;
+use CodeIgniter\Database\BaseBuilder;
+use CodeIgniter\Model;
 use Jengo\Base\Commands\Contracts\CommandVariantInterface;
 use Tatter\Schemas\Drafter\Handlers\DatabaseHandler;
 use Throwable;
@@ -29,12 +32,13 @@ class GenerateVariant implements CommandVariantInterface
     public function options(): array
     {
         return [
-            '--table'     => 'Generate schema for a specific table only',
-            '--force'     => 'Force overwrite of existing schema files',
-            '--dbgroup'   => 'Specify the database group to connect to (Defaults to tests in testing, default otherwise)',
+            '--table' => 'Generate schema for a specific table only',
+            '--force' => 'Force overwrite of existing schema files',
+            '--dbgroup' => 'Specify the database group to connect to (Defaults to tests in testing, default otherwise)',
             '--namespace' => 'Specify custom namespace for the generated schema classes',
-            '--dir'       => 'Specify custom directory where schema classes should be saved',
-            '--dry-run'   => 'Simulate the generation without creating/modifying files on disk',
+            '--dir' => 'Specify custom directory where schema classes should be saved',
+            '--dry-run' => 'Simulate the generation without creating/modifying files on disk',
+            '--with-vendor' => 'Generate schemas for vendor/system models as well (defaults to false)',
         ];
     }
 
@@ -42,7 +46,19 @@ class GenerateVariant implements CommandVariantInterface
     {
         CLI::write('Drafting database schema...', 'cyan');
 
-        $dbGroup = CLI::getOption('dbgroup');
+        // Resolve dbgroup
+        $dbGroup = $params['dbgroup'] ?? null;
+        if ($dbGroup === null) {
+            foreach ($params as $k => $v) {
+                if (strpos((string)$k, 'dbgroup=') === 0) {
+                    $dbGroup = substr((string)$k, strlen('dbgroup='));
+                    break;
+                }
+            }
+        }
+        if ($dbGroup === null) {
+            $dbGroup = CLI::getOption('dbgroup');
+        }
 
         try {
             if (empty($dbGroup)) {
@@ -59,17 +75,66 @@ class GenerateVariant implements CommandVariantInterface
             return;
         }
 
-        $targetTable = CLI::getOption('table');
-        $force = CLI::getOption('force') !== null;
-        $dryRun = CLI::getOption('dry-run') !== null;
+        $targetTable = $params['table'] ?? CLI::getOption('table');
+        if ($targetTable === null) {
+            foreach ($params as $k => $v) {
+                if (strpos((string)$k, 'table=') === 0) {
+                    $targetTable = substr((string)$k, strlen('table='));
+                    break;
+                }
+            }
+        }
+
+        $force = isset($params['force']) || (CLI::getOption('force') !== null);
+        $dryRun = isset($params['dry-run']) || (CLI::getOption('dry-run') !== null);
+
+        // Resolve with-vendor option
+        $withVendorVal = $params['with-vendor'] ?? null;
+        if ($withVendorVal === null) {
+            foreach ($params as $k => $v) {
+                if (strpos((string)$k, 'with-vendor=') === 0) {
+                    $withVendorVal = substr((string)$k, strlen('with-vendor='));
+                    break;
+                }
+            }
+        }
+        if ($withVendorVal === null) {
+            $withVendorVal = CLI::getOption('with-vendor');
+        }
+        $withVendor = array_key_exists('with-vendor', $params) || $withVendorVal !== null;
+        if ($withVendorVal === 'false' || $withVendorVal === false) {
+            $withVendor = false;
+        }
 
         // Resolve Config overrides or option overrides
         $config = config('Schema');
-        $nsOption = CLI::getOption('namespace');
+        $nsOption = $params['namespace'] ?? null;
+        if ($nsOption === null) {
+            foreach ($params as $k => $v) {
+                if (strpos((string)$k, 'namespace=') === 0) {
+                    $nsOption = substr((string)$k, strlen('namespace='));
+                    break;
+                }
+            }
+        }
+        if ($nsOption === null) {
+            $nsOption = CLI::getOption('namespace');
+        }
         $namespace = $nsOption ?: ($config->generatorNamespace ?? 'App\\Schemas');
         $namespace = rtrim($namespace, '\\');
 
-        $dirOption = CLI::getOption('dir');
+        $dirOption = $params['dir'] ?? null;
+        if ($dirOption === null) {
+            foreach ($params as $k => $v) {
+                if (strpos((string)$k, 'dir=') === 0) {
+                    $dirOption = substr((string)$k, strlen('dir='));
+                    break;
+                }
+            }
+        }
+        if ($dirOption === null) {
+            $dirOption = CLI::getOption('dir');
+        }
         $outputDir = $dirOption ?: ($config->generatorDirectory ?? APPPATH . 'Schemas');
         $outputDir = rtrim($outputDir, '/');
 
@@ -85,32 +150,35 @@ class GenerateVariant implements CommandVariantInterface
         $entityMap = [];
 
         try {
-            $modelFiles = $locator->search('Models');
+            $modelFiles = $locator->listFiles('Models/');
             foreach ($modelFiles as $file) {
                 $className = $locator->findQualifiedNameFromPath($file);
                 if ($className && class_exists($className)) {
                     if (is_subclass_of($className, 'CodeIgniter\Model')) {
                         try {
                             $modelInstance = new $className();
-                            $table = $modelInstance->table;
-                            $entity = $modelInstance->returnType;
+                            $builder = $modelInstance->builder();
+                            $table = $builder->getTable();
+                            $getReturnType = \Closure::bind(function ($model) {
+                                return $model->returnType;
+                            }, null, $modelInstance);
+                            $entity = $getReturnType($modelInstance);
                             if ($entity === 'object' || $entity === 'array') {
                                 $entity = null;
                             }
                             if ($table) {
                                 $modelMap[strtolower($table)] = [
-                                    'model'  => $className,
+                                    'model' => $className,
                                     'entity' => $entity,
                                 ];
                             }
                         } catch (Throwable $e) {
-                            // Skip non-instantiable classes
                         }
                     }
                 }
             }
 
-            $entityFiles = $locator->search('Entities');
+            $entityFiles = $locator->listFiles('Entities/');
             foreach ($entityFiles as $file) {
                 $className = $locator->findQualifiedNameFromPath($file);
                 if ($className && class_exists($className)) {
@@ -166,6 +234,23 @@ class GenerateVariant implements CommandVariantInterface
 
             // Resolve Model and Entity Class names from discovery maps
             $mapped = $modelMap[strtolower($tableName)] ?? null;
+
+            // By default (with-vendor is false), verify that a project-level model exists and is not inside vendor directory
+            if (!$withVendor) {
+                if (!$mapped) {
+                    continue;
+                }
+                try {
+                    $ref = new \ReflectionClass($mapped['model']);
+                    $fileName = $ref->getFileName();
+                    if ($fileName !== false && strpos($fileName, '/vendor/') !== false) {
+                        continue;
+                    }
+                } catch (\Throwable $e) {
+                    continue;
+                }
+            }
+
             if ($mapped) {
                 $modelClass = $mapped['model'];
                 $entityClass = $mapped['entity'] ?? ($entityMap[strtolower($singularName)] ?? "App\\Entities\\{$singularName}");
@@ -325,5 +410,28 @@ class GenerateVariant implements CommandVariantInterface
             'boolean', 'bool' => 'bool',
             default => 'string',
         };
+    }
+
+    private function getOptionFromParams(array $params, string $name)
+    {
+        foreach ($params as $i => $param) {
+            if (!is_string($param)) {
+                continue;
+            }
+            if ($param === "--{$name}" || $param === "-{$name}") {
+                $next = $params[$i + 1] ?? null;
+                if ($next !== null && is_string($next) && strpos($next, '-') !== 0) {
+                    return $next;
+                }
+                return true;
+            }
+            if (strpos($param, "--{$name}=") === 0) {
+                return substr($param, strlen("--{$name}="));
+            }
+            if (strpos($param, "-{$name}=") === 0) {
+                return substr($param, strlen("-{$name}="));
+            }
+        }
+        return null;
     }
 }
