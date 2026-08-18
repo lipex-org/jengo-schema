@@ -149,11 +149,33 @@ final class Hydrator
             withQuery: $this->options->pagination->withQuery,
         );
 
+        $hasMore = ($page * $limit) < $total;
+        $nextPage = $hasMore ? ($page + 1) : null;
+
+        $nextCursor = null;
+        if ($hasMore && !empty($this->rows)) {
+            $lastRow = end($this->rows);
+            $sortColumn = $this->options->sort->column ?? $this->node->schema->primaryKey->name ?? 'id';
+            $primaryKey = $this->node->schema->primaryKey->name ?? 'id';
+            $rootAlias = AliasGenerator::for($this->node);
+
+            $sortKey = "{$rootAlias}__{$sortColumn}";
+            $pkKey = "{$rootAlias}__{$primaryKey}";
+
+            $nextCursor = base64_encode(json_encode([
+                'v' => $lastRow[$sortKey] ?? $lastRow[$sortColumn] ?? null,
+                'k' => $lastRow[$pkKey] ?? $lastRow[$primaryKey] ?? null
+            ]));
+        }
+
         return new PaginationData(
             page: $page,
             limit: $limit,
             total: $total,
             links: $links,
+            hasMore: $hasMore,
+            nextPage: $nextPage,
+            nextCursor: $nextCursor,
         );
     }
 

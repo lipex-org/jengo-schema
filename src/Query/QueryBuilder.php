@@ -45,6 +45,53 @@ final class QueryBuilder
 
         self::applyJoins($builder, $rootNode, $plan);
 
+        // Apply cursor pagination filters if "after" option is provided
+        $after = $options->pagination->after ?? null;
+        if (!empty($after)) {
+            $cursor = json_decode(base64_decode($after), true);
+            if ($cursor) {
+                $lastSortValue = $cursor['v'] ?? null;
+                $lastPkValue = $cursor['k'] ?? null;
+
+                $sortColumn = $options->sort->column ?? $rootNode->schema->primaryKey->name ?? 'id';
+                $sortDirection = $options->sort->direction->value ?? 'desc';
+                $primaryKey = $rootNode->schema->primaryKey->name ?? 'id';
+
+                $isUnique = false;
+                if ($sortColumn === $primaryKey) {
+                    $isUnique = true;
+                } else {
+                    try {
+                        $indexes = $db->getIndexData($baseTable);
+                        foreach ($indexes as $index) {
+                            if (in_array(strtoupper($index->type), ['PRIMARY', 'UNIQUE'], true)) {
+                                if ($index->fields === [$sortColumn]) {
+                                    $isUnique = true;
+                                    break;
+                                }
+                            }
+                        }
+                    } catch (\Throwable $e) {}
+                }
+
+                $op = ($sortDirection === 'asc') ? '>' : '<';
+
+                if ($isUnique) {
+                    $builder->where("{$rootAlias}.{$sortColumn} {$op}", $lastSortValue);
+                } else {
+                    $builder->orderBy("{$rootAlias}.{$primaryKey}", $sortDirection);
+
+                    $builder->groupStart()
+                            ->where("{$rootAlias}.{$sortColumn} {$op}", $lastSortValue)
+                            ->orGroupStart()
+                                ->where("{$rootAlias}.{$sortColumn}", $lastSortValue)
+                                ->where("{$rootAlias}.{$primaryKey} {$op}", $lastPkValue)
+                            ->groupEnd()
+                        ->groupEnd();
+                }
+            }
+        }
+
         // any other feature related to query building can be done here
         $self = new self();
 
@@ -199,9 +246,14 @@ final class QueryBuilder
     {
         $limit = $pagination->limit;
         $page  = $pagination->page;
+        $after = $pagination->after ?? null;
 
         if ($limit === null || $limit === 0) {
             return $builder->get();
+        }
+
+        if (!empty($after)) {
+            return $builder->get($limit, 0);
         }
 
         $offset = ($page - 1) * $limit;

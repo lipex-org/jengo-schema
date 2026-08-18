@@ -12,6 +12,7 @@ final class PaginationOptions
         public readonly int $linksMax = 5,
         public readonly bool $withQuery = true,
         public readonly string $group = 'default',
+        public readonly ?string $after = null,
     ) {
     }
 }

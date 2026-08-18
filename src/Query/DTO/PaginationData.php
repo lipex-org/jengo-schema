@@ -14,6 +14,9 @@ final class PaginationData
          * @var list<PaginationLink> $links
          */
         public array $links = [],
+        public bool $hasMore = false,
+        public ?int $nextPage = null,
+        public ?string $nextCursor = null,
     ) {
     }
 }

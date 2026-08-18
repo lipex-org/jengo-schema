@@ -29,8 +29,12 @@ class GenerateVariant implements CommandVariantInterface
     public function options(): array
     {
         return [
-            '--table' => 'Generate schema for a specific table only',
-            '--force' => 'Force overwrite of existing schema files',
+            '--table'     => 'Generate schema for a specific table only',
+            '--force'     => 'Force overwrite of existing schema files',
+            '--dbgroup'   => 'Specify the database group to connect to (Defaults to tests in testing, default otherwise)',
+            '--namespace' => 'Specify custom namespace for the generated schema classes',
+            '--dir'       => 'Specify custom directory where schema classes should be saved',
+            '--dry-run'   => 'Simulate the generation without creating/modifying files on disk',
         ];
     }
 
@@ -38,11 +42,17 @@ class GenerateVariant implements CommandVariantInterface
     {
         CLI::write('Drafting database schema...', 'cyan');
 
+        $dbGroup = CLI::getOption('dbgroup');
+
         try {
-            $db      = (defined('ENVIRONMENT') && ENVIRONMENT === 'testing') ? 'tests' : 'default';
+            if (empty($dbGroup)) {
+                $db = (defined('ENVIRONMENT') && ENVIRONMENT === 'testing') ? 'tests' : 'default';
+            } else {
+                $db = $dbGroup;
+            }
             $handler = new DatabaseHandler(null, $db);
             $schemas = service('schemas');
-            $schema  = $schemas->draft($handler)->get();
+            $schema = $schemas->draft($handler)->get();
         } catch (Throwable $e) {
             CLI::error('Failed to map database: ' . $e->getMessage());
 
@@ -50,14 +60,68 @@ class GenerateVariant implements CommandVariantInterface
         }
 
         $targetTable = CLI::getOption('table');
-        $force       = CLI::getOption('force') !== null;
+        $force = CLI::getOption('force') !== null;
+        $dryRun = CLI::getOption('dry-run') !== null;
 
-        $outputDir = APPPATH . 'Schemas';
-        if (! is_dir($outputDir)) {
+        // Resolve Config overrides or option overrides
+        $config = config('Schema');
+        $nsOption = CLI::getOption('namespace');
+        $namespace = $nsOption ?: ($config->generatorNamespace ?? 'App\\Schemas');
+        $namespace = rtrim($namespace, '\\');
+
+        $dirOption = CLI::getOption('dir');
+        $outputDir = $dirOption ?: ($config->generatorDirectory ?? APPPATH . 'Schemas');
+        $outputDir = rtrim($outputDir, '/');
+
+        if (!$dryRun && !is_dir($outputDir)) {
             mkdir($outputDir, 0755, true);
         }
 
         helper('inflector');
+
+        // Locate all models and entities in the application & Jengo modules dynamically
+        $locator = service('locator');
+        $modelMap = [];
+        $entityMap = [];
+
+        try {
+            $modelFiles = $locator->search('Models');
+            foreach ($modelFiles as $file) {
+                $className = $locator->findQualifiedNameFromPath($file);
+                if ($className && class_exists($className)) {
+                    if (is_subclass_of($className, 'CodeIgniter\Model')) {
+                        try {
+                            $modelInstance = new $className();
+                            $table = $modelInstance->table;
+                            $entity = $modelInstance->returnType;
+                            if ($entity === 'object' || $entity === 'array') {
+                                $entity = null;
+                            }
+                            if ($table) {
+                                $modelMap[strtolower($table)] = [
+                                    'model'  => $className,
+                                    'entity' => $entity,
+                                ];
+                            }
+                        } catch (Throwable $e) {
+                            // Skip non-instantiable classes
+                        }
+                    }
+                }
+            }
+
+            $entityFiles = $locator->search('Entities');
+            foreach ($entityFiles as $file) {
+                $className = $locator->findQualifiedNameFromPath($file);
+                if ($className && class_exists($className)) {
+                    $parts = explode('\\', $className);
+                    $shortName = end($parts);
+                    $entityMap[strtolower($shortName)] = $className;
+                }
+            }
+        } catch (Throwable $e) {
+            // Fallback gracefully
+        }
 
         $generatedCount = 0;
 
@@ -70,32 +134,76 @@ class GenerateVariant implements CommandVariantInterface
                 continue;
             }
 
-            $singularName    = pascalize(singular($tableName));
+            $singularName = pascalize(singular($tableName));
             $schemaClassName = $singularName . 'Schema';
-            $filePath        = $outputDir . '/' . $schemaClassName . '.php';
+            $filePath = $outputDir . '/' . $schemaClassName . '.php';
 
-            if (file_exists($filePath) && ! $force) {
-                CLI::write("Skipping existing schema file for [{$tableName}] at [{$filePath}]. Use --force to overwrite.", 'yellow');
+            if (file_exists($filePath) && !$force) {
+                if ($dryRun) {
+                    CLI::write("  [dry-run] Would prompt to modify/overwrite existing schema file: [{$schemaClassName}] at [{$filePath}]", 'yellow');
+                    continue;
+                }
 
-                continue;
+                if (ENVIRONMENT === 'testing') {
+                    CLI::write("Skipping existing schema file for [{$tableName}] in testing environment.", 'yellow');
+                    continue;
+                }
+
+                $choice = CLI::prompt("Schema file for [{$tableName}] already exists at [{$filePath}]. Overwrite?", ['y', 'n', 'd'], 'n');
+                if (strtolower($choice) === 'n') {
+                    CLI::write("Skipping existing schema file for [{$tableName}].", 'yellow');
+                    continue;
+                }
+                if (strtolower($choice) === 'd') {
+                    $oldContent = file_get_contents($filePath);
+                    CLI::write("--- Current File ---\n" . substr($oldContent, 0, 300) . "...\n", 'yellow');
+                    $confirm = CLI::prompt("Do you still want to overwrite?", ['y', 'n'], 'n');
+                    if (strtolower($confirm) === 'n') {
+                        continue;
+                    }
+                }
             }
 
-            // Guess Model Class name
-            $modelClass  = "App\\Models\\{$singularName}Model";
-            $entityClass = "App\\Entities\\{$singularName}";
+            // Resolve Model and Entity Class names from discovery maps
+            $mapped = $modelMap[strtolower($tableName)] ?? null;
+            if ($mapped) {
+                $modelClass = $mapped['model'];
+                $entityClass = $mapped['entity'] ?? ($entityMap[strtolower($singularName)] ?? "App\\Entities\\{$singularName}");
+            } else {
+                $modelClass = "App\\Models\\{$singularName}Model";
+                $entityClass = $entityMap[strtolower($singularName)] ?? "App\\Entities\\{$singularName}";
+            }
 
             // Map Primary Key & Fields
             $fieldsBlock = '';
-            $primaryKey  = null;
+            $primaryKey = null;
 
             foreach ($table->fields as $field) {
                 $type = $this->mapPhpType($field->type ?? 'string');
+                $castAttribute = '';
+                $dbType = strtolower($field->type ?? '');
+
+                if (in_array($dbType, ['json', 'jsonb'], true)) {
+                    $castAttribute = "(cast: \\Jengo\\Schema\\Hydration\\Enums\\Cast::JSON)";
+                }
+
+                $commentBlock = '';
+                if (!empty($field->comment)) {
+                    $commentBlock = "    /**\n     * " . str_replace("\n", "\n     * ", trim($field->comment)) . "\n     */\n";
+                }
+
                 if ($field->primary_key) {
+                    $fieldsBlock .= $commentBlock;
                     $fieldsBlock .= "    #[PrimaryKey()]\n";
                     $fieldsBlock .= "    public {$type} \${$field->name};\n\n";
                     $primaryKey = $field->name;
                 } else {
-                    $fieldsBlock .= "    #[Field(searchable: true)]\n";
+                    $fieldsBlock .= $commentBlock;
+                    if ($castAttribute) {
+                        $fieldsBlock .= "    #[Field{$castAttribute}]\n";
+                    } else {
+                        $fieldsBlock .= "    #[Field()]\n";
+                    }
                     $fieldsBlock .= "    public {$type} \${$field->name};\n\n";
                 }
             }
@@ -104,23 +212,31 @@ class GenerateVariant implements CommandVariantInterface
             $relationsBlock = '';
 
             foreach ($table->relations as $relation) {
-                $relSingular    = pascalize(singular($relation->table));
+                $relSingular = pascalize(singular($relation->table));
                 $relSchemaClass = $relSingular . 'Schema';
 
                 $fromField = '';
-                $toField   = '';
+                $toField = '';
 
-                if (! empty($relation->pivots)) {
-                    $pivot     = $relation->pivots[0];
+                if (!empty($relation->pivots)) {
+                    $pivot = $relation->pivots[0];
                     $fromField = $pivot[1];
-                    $toField   = $pivot[3];
+                    $toField = $pivot[3];
+
+                    if (is_array($fromField) && isset($fromField)) {
+                        $fromField = $fromField[0];
+                    }
+
+                    if (is_array($toField) && isset($toField)) {
+                        $toField = $toField[0];
+                    }
                 } else {
                     if ($relation->type === 'belongsTo') {
                         $fromField = singular($relation->table) . '_id';
-                        $toField   = $primaryKey ?? 'id';
+                        $toField = $primaryKey ?? 'id';
                     } else {
                         $fromField = $primaryKey ?? 'id';
-                        $toField   = singular($tableName) . '_id';
+                        $toField = singular($tableName) . '_id';
                     }
                 }
 
@@ -144,7 +260,7 @@ class GenerateVariant implements CommandVariantInterface
             // Build Template
             $template = "<?php\n\n";
             $template .= "declare(strict_types=1);\n\n";
-            $template .= "namespace App\\Schemas;\n\n";
+            $template .= "namespace {$namespace};\n\n";
             $template .= "use Jengo\\Schema\\Attributes\\Field;\n";
             $template .= "use Jengo\\Schema\\Attributes\\Model;\n";
             $template .= "use Jengo\\Schema\\Attributes\\PrimaryKey;\n";
@@ -154,13 +270,15 @@ class GenerateVariant implements CommandVariantInterface
             // Check if guessed model and entity exist to clean imports
             if (class_exists($modelClass)) {
                 $template .= "use {$modelClass};\n";
-                $modelImportName = $singularName . 'Model';
+                $parts = explode('\\', $modelClass);
+                $modelImportName = end($parts);
             } else {
                 $modelImportName = "'{$modelClass}'";
             }
             if (class_exists($entityClass)) {
                 $template .= "use {$entityClass};\n";
-                $entityImportName = $singularName;
+                $parts = explode('\\', $entityClass);
+                $entityImportName = end($parts);
             } else {
                 $entityImportName = "'{$entityClass}'";
             }
@@ -179,12 +297,22 @@ class GenerateVariant implements CommandVariantInterface
             $template = rtrim($template, "\n") . "\n";
             $template .= "}\n";
 
+            if ($dryRun) {
+                CLI::write("  [dry-run] Would generate schema: [{$schemaClassName}] -> [{$filePath}]", 'yellow');
+                $generatedCount++;
+                continue;
+            }
+
             file_put_contents($filePath, $template);
             CLI::write("Generated schema: [{$schemaClassName}] -> [{$filePath}]", 'green');
             $generatedCount++;
         }
 
-        CLI::write("Successfully generated {$generatedCount} Jengo Schema files.", 'green');
+        if ($dryRun) {
+            CLI::write("Successfully simulated generation of {$generatedCount} Jengo Schema files.", 'green');
+        } else {
+            CLI::write("Successfully generated {$generatedCount} Jengo Schema files.", 'green');
+        }
     }
 
     private function mapPhpType(string $dbType): string
@@ -193,9 +321,9 @@ class GenerateVariant implements CommandVariantInterface
 
         return match ($dbType) {
             'int', 'integer', 'tinyint', 'smallint', 'mediumint', 'bigint' => 'int',
-            'float', 'double', 'decimal', 'numeric', 'real'                => 'float',
-            'boolean', 'bool'                                              => 'bool',
-            default                                                        => 'string',
+            'float', 'double', 'decimal', 'numeric', 'real' => 'float',
+            'boolean', 'bool' => 'bool',
+            default => 'string',
         };
     }
 }

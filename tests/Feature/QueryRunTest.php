@@ -8,6 +8,7 @@ use Jengo\Schema\Query\DTO\PaginationOptions;
 use Jengo\Schema\Query\DTO\ParamOptions;
 use Jengo\Schema\Query\DTO\QueryOptions;
 use Jengo\Schema\Query\DTO\QueryResult;
+use Jengo\Schema\Query\DTO\SortOptions;
 use Jengo\Schema\Query\Enums\QueryMode;
 use Jengo\Schema\Query\Query;
 use Tests\Support\Entity\UserFile;
@@ -106,6 +107,17 @@ final class QueryRunTest extends TestCase
 
         // Assert Pagination totals
         $this->assertGreaterThanOrEqual(2, $result->pagination->total);
+        $this->assertFalse($result->pagination->hasMore);
+        $this->assertNull($result->pagination->nextPage);
+
+        // Verify hasMore = true, nextPage = 2 when limit is less than total
+        $optionsLimit1 = new QueryOptions(
+            pagination: new PaginationOptions(page: 1, limit: 1),
+            first: false,
+        );
+        $resultLimit1 = Query::run(UserFileSchema::class, $optionsLimit1, QueryMode::INLINE);
+        $this->assertTrue($resultLimit1->pagination->hasMore);
+        $this->assertSame(2, $resultLimit1->pagination->nextPage);
     }
 
     /**
@@ -125,5 +137,48 @@ final class QueryRunTest extends TestCase
 
         // 'full_name' is a #[Computed] field in UserSchema
         $this->assertSame('John Doe', $result->data->full_name);
+    }
+
+    public function testCursorPagination(): void
+    {
+        $this->tearDown();
+        $this->db->table('users')->insert([
+            'first_name' => 'Carleton',
+            'last_name'  => 'Krajcik',
+            'email'      => 'emmerich.rory@yahoo.com',
+        ]);
+
+        $this->db->table('user_files')->insertBatch([
+            ['name' => 'File A', 'size' => 1.0, 'path' => '/a', 'user_id' => 1],
+            ['name' => 'File B', 'size' => 2.0, 'path' => '/b', 'user_id' => 1],
+            ['name' => 'File C', 'size' => 3.0, 'path' => '/c', 'user_id' => 1],
+            ['name' => 'File D', 'size' => 4.0, 'path' => '/d', 'user_id' => 1],
+        ]);
+
+        // First page request
+        $options = new QueryOptions(
+            pagination: new PaginationOptions(page: 1, limit: 2),
+            sort: new SortOptions(column: 'size', direction: \Jengo\Schema\Query\Enums\SortOrder::ASC),
+            first: false,
+        );
+
+        $result1 = Query::run(UserFileSchema::class, $options, QueryMode::INLINE);
+        $this->assertCount(2, $result1->data);
+        $this->assertSame('File A', $result1->data[0]->name);
+        $this->assertSame('File B', $result1->data[1]->name);
+        $this->assertTrue($result1->pagination->hasMore);
+        $this->assertNotNull($result1->pagination->nextCursor);
+
+        // Second page request using the cursor
+        $cursorOptions = new QueryOptions(
+            pagination: new PaginationOptions(limit: 2, after: $result1->pagination->nextCursor),
+            sort: new SortOptions(column: 'size', direction: \Jengo\Schema\Query\Enums\SortOrder::ASC),
+            first: false,
+        );
+
+        $result2 = Query::run(UserFileSchema::class, $cursorOptions, QueryMode::INLINE);
+        $this->assertCount(2, $result2->data);
+        $this->assertSame('File C', $result2->data[0]->name);
+        $this->assertSame('File D', $result2->data[1]->name);
     }
 }

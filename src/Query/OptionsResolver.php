@@ -86,6 +86,7 @@ final class OptionsResolver
             linksMax: $default->linksMax,
             withQuery: $default->withQuery,
             group: $pagination->group ?: $default->group,
+            after: $pagination->after,
         );
     }
 

@@ -40,6 +40,12 @@ class Schema extends BaseConfig
     public array $entityMap = [];
 
     /**
+     * Generator configurations
+     */
+    public string $generatorNamespace = 'App\\Schemas';
+    public string $generatorDirectory = APPPATH . 'Schemas';
+
+    /**
      * Pagination UI / link-generation policy
      */
     public bool $includeNextAndPrevious = true;
