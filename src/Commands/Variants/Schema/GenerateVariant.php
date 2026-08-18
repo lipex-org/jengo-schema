@@ -257,32 +257,6 @@ class GenerateVariant implements CommandVariantInterface
             $schemaClassName = $singularName . 'Schema';
             $filePath = $outputDir . '/' . $schemaClassName . '.php';
 
-            if (file_exists($filePath) && !$force) {
-                if ($dryRun) {
-                    CLI::write("  [dry-run] Would prompt to modify/overwrite existing schema file: [{$schemaClassName}] at [{$filePath}]", 'yellow');
-                    continue;
-                }
-
-                if (ENVIRONMENT === 'testing') {
-                    CLI::write("Skipping existing schema file for [{$tableName}] in testing environment.", 'yellow');
-                    continue;
-                }
-
-                $choice = CLI::prompt("Schema file for [{$tableName}] already exists at [{$filePath}]. Overwrite?", ['y', 'n', 'd'], 'n');
-                if (strtolower($choice) === 'n') {
-                    CLI::write("Skipping existing schema file for [{$tableName}].", 'yellow');
-                    continue;
-                }
-                if (strtolower($choice) === 'd') {
-                    $oldContent = file_get_contents($filePath);
-                    CLI::write("--- Current File ---\n" . substr($oldContent, 0, 300) . "...\n", 'yellow');
-                    $confirm = CLI::prompt("Do you still want to overwrite?", ['y', 'n'], 'n');
-                    if (strtolower($confirm) === 'n') {
-                        continue;
-                    }
-                }
-            }
-
             // Resolve Model and Entity Class names from discovery maps
             $mapped = $modelMap[strtolower($tableName)] ?? null;
 
@@ -299,6 +273,33 @@ class GenerateVariant implements CommandVariantInterface
                     }
                 } catch (\Throwable $e) {
                     continue;
+                }
+            }
+
+            // Determine if we should generate the PHP file
+            $writePhp = true;
+            if (file_exists($filePath) && !$force) {
+                if ($dryRun) {
+                    CLI::write("  [dry-run] Would prompt to modify/overwrite existing schema file: [{$schemaClassName}] at [{$filePath}]", 'yellow');
+                    $writePhp = false;
+                } else {
+                    if (ENVIRONMENT === 'testing') {
+                        CLI::write("Skipping existing schema file for [{$tableName}] in testing environment.", 'yellow');
+                        $writePhp = false;
+                    } else {
+                        $choice = CLI::prompt("Schema file for [{$tableName}] already exists at [{$filePath}]. Overwrite?", ['y', 'n', 'd'], 'n');
+                        if (strtolower($choice) === 'n') {
+                            CLI::write("Skipping existing schema file for [{$tableName}].", 'yellow');
+                            $writePhp = false;
+                        } elseif (strtolower($choice) === 'd') {
+                            $oldContent = file_get_contents($filePath);
+                            CLI::write("--- Current File ---\n" . substr($oldContent, 0, 300) . "...\n", 'yellow');
+                            $confirm = CLI::prompt("Do you still want to overwrite?", ['y', 'n'], 'n');
+                            if (strtolower($confirm) === 'n') {
+                                $writePhp = false;
+                            }
+                        }
+                    }
                 }
             }
 
@@ -350,6 +351,23 @@ class GenerateVariant implements CommandVariantInterface
             $relationsBlock = '';
 
             foreach ($table->relations as $relation) {
+                // By default (with-vendor is false), skip relations to vendor models
+                if (!$withVendor) {
+                    $relMapped = $modelMap[strtolower($relation->table)] ?? null;
+                    if (!$relMapped) {
+                        continue;
+                    }
+                    try {
+                        $ref = new \ReflectionClass($relMapped['model']);
+                        $fileName = $ref->getFileName();
+                        if ($fileName !== false && strpos($fileName, '/vendor/') !== false) {
+                            continue;
+                        }
+                    } catch (\Throwable $e) {
+                        continue;
+                    }
+                }
+
                 $relSingular = pascalize(singular($relation->table));
                 $relSchemaClass = $relSingular . 'Schema';
 
@@ -447,6 +465,22 @@ class GenerateVariant implements CommandVariantInterface
                 }
 
                 foreach ($table->relations as $relation) {
+                    if (!$withVendor) {
+                        $relMapped = $modelMap[strtolower($relation->table)] ?? null;
+                        if (!$relMapped) {
+                            continue;
+                        }
+                        try {
+                            $ref = new \ReflectionClass($relMapped['model']);
+                            $fileName = $ref->getFileName();
+                            if ($fileName !== false && strpos($fileName, '/vendor/') !== false) {
+                                continue;
+                            }
+                        } catch (\Throwable $e) {
+                            continue;
+                        }
+                    }
+
                     $relSingular = pascalize(singular($relation->table));
                     $relSchemaClass = $relSingular . 'Schema';
                     $tsImports[] = "import { {$relSchemaClass} } from './{$relSchemaClass}';";
@@ -477,15 +511,15 @@ class GenerateVariant implements CommandVariantInterface
                 $tsExports[] = $schemaClassName;
             }
 
-            if ($dryRun) {
-                CLI::write("  [dry-run] Would generate schema: [{$schemaClassName}] -> [{$filePath}]", 'yellow');
+            if ($writePhp) {
+                if ($dryRun) {
+                    CLI::write("  [dry-run] Would generate schema: [{$schemaClassName}] -> [{$filePath}]", 'yellow');
+                } else {
+                    file_put_contents($filePath, $template);
+                    CLI::write("Generated schema: [{$schemaClassName}] -> [{$filePath}]", 'green');
+                }
                 $generatedCount++;
-                continue;
             }
-
-            file_put_contents($filePath, $template);
-            CLI::write("Generated schema: [{$schemaClassName}] -> [{$filePath}]", 'green');
-            $generatedCount++;
         }
 
         if ($generateTs && !empty($tsExports)) {
