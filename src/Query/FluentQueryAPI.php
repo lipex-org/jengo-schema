@@ -41,6 +41,7 @@ final class FluentQueryAPI
     private array $allowedCapabilities   = ['pagination'];
     private ?string $entityClass         = null;
     private mixed $clamp                 = false;
+    private mixed $clampPage             = null;
     private ?string $after               = null;
 
     public function __construct(
@@ -533,10 +534,12 @@ final class FluentQueryAPI
      * Enable or disable clamping pagination parameters when requesting pages out of range
      *
      * @param bool|callable $enable
+     * @param mixed $fallbackPage
      */
-    public function clamp(bool|callable $enable = true): self
+    public function clamp(bool|callable $enable = true, mixed $fallbackPage = null): self
     {
-        $this->clamp = $enable;
+        $this->clamp     = $enable;
+        $this->clampPage = $fallbackPage;
 
         return $this;
     }
@@ -560,6 +563,7 @@ final class FluentQueryAPI
                 group: $this->paginationGroup,
                 after: $this->after,
                 clamp: is_callable($this->clamp) ? (bool) ($this->clamp)() : (bool) $this->clamp,
+                clampPage: $this->clampPage,
             ),
             derive: $this->derive,
             sort: new SortOptions(

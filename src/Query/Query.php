@@ -57,14 +57,25 @@ final class Query
             }
 
             if ($shouldClamp) {
+                // Resolve fallback target page
+                $fallbackPageVal = is_callable($options->pagination->clampPage)
+                    ? ($options->pagination->clampPage)()
+                    : $options->pagination->clampPage;
+
+                $targetPage = ($fallbackPageVal !== null) ? (int)$fallbackPageVal : $lastPage;
+                if ($targetPage < 1) {
+                    $targetPage = 1;
+                }
+
                 $newPagination = new PaginationOptions(
                     limit: $options->pagination->limit,
-                    page: $lastPage,
+                    page: $targetPage,
                     linksMax: $options->pagination->linksMax,
                     withQuery: $options->pagination->withQuery,
                     group: $options->pagination->group,
                     after: null,
                     clamp: $options->pagination->clamp,
+                    clampPage: $options->pagination->clampPage,
                 );
                 $options = new QueryOptions(
                     params: $options->params,

@@ -14,6 +14,7 @@ final class PaginationOptions
         public readonly string $group = 'default',
         public readonly ?string $after = null,
         public readonly bool $clamp = false,
+        public readonly mixed $clampPage = null,
     ) {
     }
 }

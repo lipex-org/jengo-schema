@@ -312,5 +312,29 @@ final class QueryRunTest extends TestCase
         } finally {
             service('request')->setGlobal('get', []);
         }
+
+        // 11. Test custom clamp target page (integer: clamp to page 1)
+        $fluentTargetOne = \Jengo\Schema\query(UserFileSchema::class)
+            ->inline()
+            ->limit(2)
+            ->page(5)
+            ->clamp(true, 1)
+            ->sort('size', \Jengo\Schema\Query\Enums\SortOrder::ASC)
+            ->get();
+        $this->assertCount(2, $fluentTargetOne->data);
+        $this->assertSame('File A', $fluentTargetOne->data[0]->name);
+        $this->assertSame(1, $fluentTargetOne->pagination->page);
+
+        // 12. Test custom clamp target page (closure: clamp to page 1)
+        $fluentTargetClosure = \Jengo\Schema\query(UserFileSchema::class)
+            ->inline()
+            ->limit(2)
+            ->page(5)
+            ->clamp(true, fn() => 1)
+            ->sort('size', \Jengo\Schema\Query\Enums\SortOrder::ASC)
+            ->get();
+        $this->assertCount(2, $fluentTargetClosure->data);
+        $this->assertSame('File A', $fluentTargetClosure->data[0]->name);
+        $this->assertSame(1, $fluentTargetClosure->pagination->page);
     }
 }

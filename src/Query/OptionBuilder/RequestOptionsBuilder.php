@@ -129,6 +129,7 @@ final class RequestOptionsBuilder
                 group: (string) $group,
                 after: $after,
                 clamp: $pagination->clamp,
+                clampPage: $pagination->clampPage,
             );
         }
 
