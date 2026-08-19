@@ -24,6 +24,7 @@ final class QueryBuilder
 {
     private ?BaseBuilder $builder  = null;
     private ?QueryOptions $options = null;
+    private ?Node $rootNode        = null;
 
     public static function build(Node $rootNode, QueryOptions $options, QueryPlan $plan): self
     {
@@ -45,58 +46,12 @@ final class QueryBuilder
 
         self::applyJoins($builder, $rootNode, $plan);
 
-        // Apply cursor pagination filters if "after" option is provided
-        $after = $options->pagination->after ?? null;
-        if (!empty($after)) {
-            $cursor = json_decode(base64_decode($after), true);
-            if ($cursor) {
-                $lastSortValue = $cursor['v'] ?? null;
-                $lastPkValue = $cursor['k'] ?? null;
-
-                $sortColumn = $options->sort->column ?? $rootNode->schema->primaryKey->name ?? 'id';
-                $sortDirection = $options->sort->direction->value ?? 'desc';
-                $primaryKey = $rootNode->schema->primaryKey->name ?? 'id';
-
-                $isUnique = false;
-                if ($sortColumn === $primaryKey) {
-                    $isUnique = true;
-                } else {
-                    try {
-                        $indexes = $db->getIndexData($baseTable);
-                        foreach ($indexes as $index) {
-                            if (in_array(strtoupper($index->type), ['PRIMARY', 'UNIQUE'], true)) {
-                                if ($index->fields === [$sortColumn]) {
-                                    $isUnique = true;
-                                    break;
-                                }
-                            }
-                        }
-                    } catch (\Throwable $e) {}
-                }
-
-                $op = ($sortDirection === 'asc') ? '>' : '<';
-
-                if ($isUnique) {
-                    $builder->where("{$rootAlias}.{$sortColumn} {$op}", $lastSortValue);
-                } else {
-                    $builder->orderBy("{$rootAlias}.{$primaryKey}", $sortDirection);
-
-                    $builder->groupStart()
-                            ->where("{$rootAlias}.{$sortColumn} {$op}", $lastSortValue)
-                            ->orGroupStart()
-                                ->where("{$rootAlias}.{$sortColumn}", $lastSortValue)
-                                ->where("{$rootAlias}.{$primaryKey} {$op}", $lastPkValue)
-                            ->groupEnd()
-                        ->groupEnd();
-                }
-            }
-        }
-
         // any other feature related to query building can be done here
         $self = new self();
 
-        $self->builder = $builder;
-        $self->options = $options;
+        $self->builder  = $builder;
+        $self->options  = $options;
+        $self->rootNode = $rootNode;
 
         return $self;
     }
@@ -114,7 +69,14 @@ final class QueryBuilder
             QueryLogger::enable();
         }
 
-        $total       = $builder->countAllResults(false);
+        // Calculate total count BEFORE cursor pagination filter is applied
+        $total = $builder->countAllResults(false);
+
+        // Apply cursor pagination filters if "after" option is provided
+        if ($this->rootNode) {
+            self::applyCursor($builder, $this->rootNode, $options);
+        }
+
         $result      = self::applyPagination($builder, $options->pagination);
         $resultArray = $result->getResultArray();
 
@@ -124,6 +86,63 @@ final class QueryBuilder
             total: $total,
             rows: $resultArray,
         );
+    }
+
+    private static function applyCursor(BaseBuilder $builder, Node $rootNode, QueryOptions $options): void
+    {
+        $after = $options->pagination->after ?? null;
+        if (empty($after)) {
+            return;
+        }
+
+        $cursor = json_decode(base64_decode($after), true);
+        if (!$cursor) {
+            return;
+        }
+
+        $db        = Database::connect();
+        $baseTable = QueryUtils::resolveTableFromSchema($rootNode->schema);
+        $rootAlias = AliasGenerator::for($rootNode);
+
+        $lastSortValue = $cursor['v'] ?? null;
+        $lastPkValue   = $cursor['k'] ?? null;
+
+        $sortColumn    = $options->sort->column ?? $rootNode->schema->primaryKey->name ?? 'id';
+        $sortDirection = $options->sort->direction->value ?? 'desc';
+        $primaryKey    = $rootNode->schema->primaryKey->name ?? 'id';
+
+        $isUnique = false;
+        if ($sortColumn === $primaryKey) {
+            $isUnique = true;
+        } else {
+            try {
+                $indexes = $db->getIndexData($baseTable);
+                foreach ($indexes as $index) {
+                    if (in_array(strtoupper($index->type), ['PRIMARY', 'UNIQUE'], true)) {
+                        if ($index->fields === [$sortColumn]) {
+                            $isUnique = true;
+                            break;
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {}
+        }
+
+        $op = ($sortDirection === 'asc') ? '>' : '<';
+
+        if ($isUnique) {
+            $builder->where("{$rootAlias}.{$sortColumn} {$op}", $lastSortValue);
+        } else {
+            $builder->orderBy("{$rootAlias}.{$primaryKey}", $sortDirection);
+
+            $builder->groupStart()
+                    ->where("{$rootAlias}.{$sortColumn} {$op}", $lastSortValue)
+                    ->orGroupStart()
+                        ->where("{$rootAlias}.{$sortColumn}", $lastSortValue)
+                        ->where("{$rootAlias}.{$primaryKey} {$op}", $lastPkValue)
+                    ->groupEnd()
+                ->groupEnd();
+        }
     }
 
     private static function applyRootSelect(BaseBuilder $builder, QueryPlan $plan, string $rootAlias): void

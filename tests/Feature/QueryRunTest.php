@@ -181,4 +181,136 @@ final class QueryRunTest extends TestCase
         $this->assertSame('File C', $result2->data[0]->name);
         $this->assertSame('File D', $result2->data[1]->name);
     }
+
+    public function testPaginationClamping(): void
+    {
+        $this->tearDown();
+        $this->db->table('users')->insert([
+            'first_name' => 'Carleton',
+            'last_name'  => 'Krajcik',
+            'email'      => 'emmerich.rory@yahoo.com',
+        ]);
+
+        $this->db->table('user_files')->insertBatch([
+            ['name' => 'File A', 'size' => 1.0, 'path' => '/a', 'user_id' => 1],
+            ['name' => 'File B', 'size' => 2.0, 'path' => '/b', 'user_id' => 1],
+            ['name' => 'File C', 'size' => 3.0, 'path' => '/c', 'user_id' => 1],
+            ['name' => 'File D', 'size' => 4.0, 'path' => '/d', 'user_id' => 1],
+        ]);
+
+        // 1. Without clamp, requesting page 5 (beyond last page 2) should yield 0 results
+        $optionsNoClamp = new QueryOptions(
+            pagination: new PaginationOptions(page: 5, limit: 2, clamp: false),
+            sort: new SortOptions(column: 'size', direction: \Jengo\Schema\Query\Enums\SortOrder::ASC),
+            first: false,
+        );
+        $resultNoClamp = Query::run(UserFileSchema::class, $optionsNoClamp, QueryMode::INLINE);
+        $this->assertCount(0, $resultNoClamp->data);
+
+        // 2. With clamp, requesting page 5 should clamp to page 2 and yield 2 results (File C and File D)
+        $optionsClamp = new QueryOptions(
+            pagination: new PaginationOptions(page: 5, limit: 2, clamp: true),
+            sort: new SortOptions(column: 'size', direction: \Jengo\Schema\Query\Enums\SortOrder::ASC),
+            first: false,
+        );
+        $resultClamp = Query::run(UserFileSchema::class, $optionsClamp, QueryMode::INLINE);
+        $this->assertCount(2, $resultClamp->data);
+        $this->assertSame('File C', $resultClamp->data[0]->name);
+        $this->assertSame('File D', $resultClamp->data[1]->name);
+        $this->assertSame(2, $resultClamp->pagination->page);
+
+        // 3. With clamp and cursor yielding no data (e.g. value > 100), it should clamp to last page and yield File C and File D
+        $outOfBoundsCursor = base64_encode(json_encode(['v' => 100.0, 'k' => 100]));
+        $optionsCursorClamp = new QueryOptions(
+            pagination: new PaginationOptions(limit: 2, after: $outOfBoundsCursor, clamp: true),
+            sort: new SortOptions(column: 'size', direction: \Jengo\Schema\Query\Enums\SortOrder::ASC),
+            first: false,
+        );
+        $resultCursorClamp = Query::run(UserFileSchema::class, $optionsCursorClamp, QueryMode::INLINE);
+        $this->assertCount(2, $resultCursorClamp->data);
+        $this->assertSame('File C', $resultCursorClamp->data[0]->name);
+        $this->assertSame('File D', $resultCursorClamp->data[1]->name);
+
+        // 4. Test via Fluent API
+        $fluentResult = \Jengo\Schema\query(UserFileSchema::class)
+            ->inline()
+            ->limit(2)
+            ->page(5)
+            ->clamp(true)
+            ->sort('size', \Jengo\Schema\Query\Enums\SortOrder::ASC)
+            ->get();
+
+        $this->assertCount(2, $fluentResult->data);
+        $this->assertSame('File C', $fluentResult->data[0]->name);
+
+        // 5. Test with callable that returns false (should NOT clamp, yielding 0 results)
+        $fluentCallableFalse = \Jengo\Schema\query(UserFileSchema::class)
+            ->inline()
+            ->limit(2)
+            ->page(5)
+            ->clamp(fn() => false)
+            ->sort('size', \Jengo\Schema\Query\Enums\SortOrder::ASC)
+            ->get();
+        $this->assertCount(0, $fluentCallableFalse->data);
+
+        // 6. Test with callable that returns true (should clamp, yielding 2 results)
+        $fluentCallableTrue = \Jengo\Schema\query(UserFileSchema::class)
+            ->inline()
+            ->limit(2)
+            ->page(5)
+            ->clamp(fn() => true)
+            ->sort('size', \Jengo\Schema\Query\Enums\SortOrder::ASC)
+            ->get();
+        $this->assertCount(2, $fluentCallableTrue->data);
+
+        // 7. Test with Clamp::ajax() condition helper (in CLI test environment, not AJAX, so returns true -> clamps)
+        $fluentClampAjax = \Jengo\Schema\query(UserFileSchema::class)
+            ->inline()
+            ->limit(2)
+            ->page(5)
+            ->clamp([\Jengo\Schema\Query\Clamp::class, 'ajax'])
+            ->sort('size', \Jengo\Schema\Query\Enums\SortOrder::ASC)
+            ->get();
+        $this->assertCount(2, $fluentClampAjax->data);
+
+        // 8. Test with Clamp::inertia() condition helper (by default, no X-Inertia header -> clamps)
+        $fluentClampInertia = \Jengo\Schema\query(UserFileSchema::class)
+            ->inline()
+            ->limit(2)
+            ->page(5)
+            ->clamp([\Jengo\Schema\Query\Clamp::class, 'inertia'])
+            ->sort('size', \Jengo\Schema\Query\Enums\SortOrder::ASC)
+            ->get();
+        $this->assertCount(2, $fluentClampInertia->data);
+
+        // 9. Test with Clamp::inertia() under simulated Inertia request (X-Inertia: true -> does NOT clamp)
+        request()->setHeader('X-Inertia', 'true');
+        try {
+            $fluentClampInertiaActive = \Jengo\Schema\query(UserFileSchema::class)
+                ->inline()
+                ->limit(2)
+                ->page(5)
+                ->clamp([\Jengo\Schema\Query\Clamp::class, 'inertia'])
+                ->sort('size', \Jengo\Schema\Query\Enums\SortOrder::ASC)
+                ->get();
+            $this->assertCount(0, $fluentClampInertiaActive->data);
+        } finally {
+            request()->removeHeader('X-Inertia');
+        }
+
+        // 10. Test clamping in openMode (request-driven) with GET parameters
+        service('request')->setGlobal('get', ['page' => '5']);
+        try {
+            $fluentOpenClamp = \Jengo\Schema\query(UserFileSchema::class)
+                ->open()
+                ->limit(2)
+                ->clamp(true)
+                ->sort('size', \Jengo\Schema\Query\Enums\SortOrder::ASC)
+                ->get();
+            $this->assertCount(2, $fluentOpenClamp->data);
+            $this->assertSame(2, $fluentOpenClamp->pagination->page);
+        } finally {
+            service('request')->setGlobal('get', []);
+        }
+    }
 }

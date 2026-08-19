@@ -112,12 +112,14 @@ final class RequestOptionsBuilder
             // Dynamic URL parameter names based on group prefixing
             $pageKey  = $group === 'default' ? 'page' : 'page_' . $group;
             $limitKey = $group === 'default' ? 'limit' : 'limit_' . $group;
+            $afterKey = $group === 'default' ? 'after' : 'after_' . $group;
 
             $withQuery = $request->getGet('withQuery') !== null ?: $pagination->withQuery;
             $linksMax  = max((int) $request->getGet('links'), $pagination->linksMax);
 
             $page  = max((int) $request->getGet($pageKey), 1);
             $limit = $request->getGet($limitKey) ?: $pagination->limit;
+            $after = $request->getGet($afterKey) ?: $pagination->after;
 
             $pagination = new PaginationOptions(
                 limit: (int) $limit,
@@ -125,6 +127,8 @@ final class RequestOptionsBuilder
                 linksMax: (int) $linksMax,
                 withQuery: (bool) $withQuery,
                 group: (string) $group,
+                after: $after,
+                clamp: $pagination->clamp,
             );
         }
 

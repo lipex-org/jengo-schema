@@ -40,6 +40,8 @@ final class FluentQueryAPI
     private string $paginationGroup      = 'default';
     private array $allowedCapabilities   = ['pagination'];
     private ?string $entityClass         = null;
+    private mixed $clamp                 = false;
+    private ?string $after               = null;
 
     public function __construct(
         private readonly string $schema,
@@ -518,6 +520,28 @@ final class FluentQueryAPI
     }
 
     /**
+     * Set the cursor to start fetching after (for cursor pagination)
+     */
+    public function after(?string $cursor): self
+    {
+        $this->after = $cursor;
+
+        return $this;
+    }
+
+    /**
+     * Enable or disable clamping pagination parameters when requesting pages out of range
+     *
+     * @param bool|callable $enable
+     */
+    public function clamp(bool|callable $enable = true): self
+    {
+        $this->clamp = $enable;
+
+        return $this;
+    }
+
+    /**
      * Internal: Compiles properties into QueryOptions and runs Query::run
      */
     private function execute(bool $first): QueryResult
@@ -534,6 +558,8 @@ final class FluentQueryAPI
                 limit: $this->limit,
                 page: $this->page,
                 group: $this->paginationGroup,
+                after: $this->after,
+                clamp: is_callable($this->clamp) ? (bool) ($this->clamp)() : (bool) $this->clamp,
             ),
             derive: $this->derive,
             sort: new SortOptions(

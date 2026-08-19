@@ -13,6 +13,7 @@ final class PaginationOptions
         public readonly bool $withQuery = true,
         public readonly string $group = 'default',
         public readonly ?string $after = null,
+        public readonly bool $clamp = false,
     ) {
     }
 }
