@@ -32,15 +32,15 @@ class GenerateVariant implements CommandVariantInterface
     public function options(): array
     {
         return [
-            '--table'       => 'Generate schema for a specific table only',
-            '--force'       => 'Force overwrite of existing schema files',
-            '--dbgroup'     => 'Specify the database group to connect to (Defaults to tests in testing, default otherwise)',
-            '--namespace'   => 'Specify custom namespace for the generated schema classes',
-            '--dir'         => 'Specify custom directory where schema classes should be saved',
-            '--dry-run'     => 'Simulate the generation without creating/modifying files on disk',
+            '--table' => 'Generate schema for a specific table only',
+            '--force' => 'Force overwrite of existing schema files',
+            '--dbgroup' => 'Specify the database group to connect to (Defaults to tests in testing, default otherwise)',
+            '--namespace' => 'Specify custom namespace for the generated schema classes',
+            '--dir' => 'Specify custom directory where schema classes should be saved',
+            '--dry-run' => 'Simulate the generation without creating/modifying files on disk',
             '--with-vendor' => 'Generate schemas for vendor/system models as well (defaults to false)',
-            '--ts'          => 'Generate TypeScript interfaces alongside Jengo Schema classes',
-            '--ts-dir'      => 'Specify custom directory for TypeScript types (defaults to resources/js/types/schemas)',
+            '--ts' => 'Generate TypeScript interfaces alongside Jengo Schema classes',
+            '--ts-dir' => 'Specify custom directory for TypeScript types (defaults to resources/js/types/schemas)',
         ];
     }
 
@@ -109,7 +109,7 @@ class GenerateVariant implements CommandVariantInterface
         }
 
         // Resolve Config overrides or option overrides
-        $config = config('Schema');
+        $config = config('JengoSchema');
         $nsOption = $params['namespace'] ?? null;
         if ($nsOption === null) {
             foreach ($params as $k => $v) {
@@ -122,7 +122,7 @@ class GenerateVariant implements CommandVariantInterface
         if ($nsOption === null) {
             $nsOption = CLI::getOption('namespace');
         }
-        $namespace = $nsOption ?: ($config->generatorNamespace ?? 'App\\Schemas');
+        $namespace = $nsOption ?: $config->getGeneratorNamespace();
         $namespace = rtrim($namespace, '\\');
 
         $dirOption = $params['dir'] ?? null;
@@ -137,7 +137,7 @@ class GenerateVariant implements CommandVariantInterface
         if ($dirOption === null) {
             $dirOption = CLI::getOption('dir');
         }
-        $outputDir = $dirOption ?: ($config->generatorDirectory ?? APPPATH . 'Schemas');
+        $outputDir = $dirOption ?: $config->getGeneratorDirectory();
         $outputDir = rtrim($outputDir, '/');
 
         if (!$dryRun && !is_dir($outputDir)) {
@@ -148,8 +148,8 @@ class GenerateVariant implements CommandVariantInterface
         $tsOption = $params['ts'] ?? null;
         if ($tsOption === null) {
             foreach ($params as $k => $v) {
-                if (strpos((string)$k, 'ts=') === 0) {
-                    $tsOption = substr((string)$k, strlen('ts='));
+                if (strpos((string) $k, 'ts=') === 0) {
+                    $tsOption = substr((string) $k, strlen('ts='));
                     break;
                 }
             }
@@ -162,14 +162,14 @@ class GenerateVariant implements CommandVariantInterface
             $generateTs = false;
         }
         if ($tsOption === null && !array_key_exists('ts', $params)) {
-            $generateTs = $config->generateTypeScript ?? false;
+            $generateTs = $config->shouldGenerateTypeScript();
         }
 
         $tsDirOption = $params['ts-dir'] ?? null;
         if ($tsDirOption === null) {
             foreach ($params as $k => $v) {
-                if (strpos((string)$k, 'ts-dir=') === 0) {
-                    $tsDirOption = substr((string)$k, strlen('ts-dir='));
+                if (strpos((string) $k, 'ts-dir=') === 0) {
+                    $tsDirOption = substr((string) $k, strlen('ts-dir='));
                     break;
                 }
             }
@@ -177,7 +177,7 @@ class GenerateVariant implements CommandVariantInterface
         if ($tsDirOption === null) {
             $tsDirOption = CLI::getOption('ts-dir');
         }
-        $tsOutputDir = $tsDirOption ?: ($config->typeScriptDirectory ?? ROOTPATH . 'resources/js/types/schemas');
+        $tsOutputDir = $tsDirOption ?: $config->getTypeScriptDirectory();
         $tsOutputDir = rtrim($tsOutputDir, '/');
 
         if ($generateTs && !$dryRun && !is_dir($tsOutputDir)) {

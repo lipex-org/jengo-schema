@@ -28,10 +28,10 @@ final class VirtualSchemaResolver
             if ($cached = cache($cacheKey)) {
                 $metadata = unserialize($cached);
                 if ($metadata && str_starts_with($metadata->modelClass, 'Jengo\\Schema\\Dynamic\\')) {
-                    $parts     = explode('\\', $metadata->modelClass);
+                    $parts = explode('\\', $metadata->modelClass);
                     $className = end($parts);
-                    if (! class_exists($metadata->modelClass)) {
-                        eval("
+                    if (!class_exists($metadata->modelClass)) {
+                        eval ("
                             namespace Jengo\\Schema\\Dynamic;
                             class {$className} extends \\CodeIgniter\\Model {
                                 protected \$table = '{$schemaClassOrTable}';
@@ -49,17 +49,17 @@ final class VirtualSchemaResolver
 
         // 2. Map database schema using Tatter\Schemas
         try {
-            $db      = (defined('ENVIRONMENT') && ENVIRONMENT === 'testing') ? 'tests' : 'default';
+            $db = (defined('ENVIRONMENT') && ENVIRONMENT === 'testing') ? 'tests' : 'default';
             $handler = new DatabaseHandler(null, $db);
             $schemas = service('schemas');
-            $schema  = $schemas->draft($handler)->get();
+            $schema = $schemas->draft($handler)->get();
         } catch (Throwable $e) {
             return null;
         }
 
         // 3. Resolve table name
-        $tableName   = $schemaClassOrTable;
-        $modelClass  = null;
+        $tableName = $schemaClassOrTable;
+        $modelClass = null;
         $entityClass = null;
 
         // If the class exists and is a model
@@ -68,8 +68,8 @@ final class VirtualSchemaResolver
 
             try {
                 $modelInstance = new $modelClass();
-                $tableName     = $modelInstance->table;
-                $entityClass   = $modelInstance->returnType;
+                $tableName = $modelInstance->table;
+                $entityClass = $modelInstance->returnType;
                 if ($entityClass === 'object' || $entityClass === null) {
                     $entityClass = stdClass::class;
                 } elseif ($entityClass === 'array') {
@@ -86,7 +86,7 @@ final class VirtualSchemaResolver
             // Case-insensitive check
             foreach ($schema->tables as $tName => $tObj) {
                 if (strtolower($tName) === strtolower($tableName)) {
-                    $table     = $tObj;
+                    $table = $tObj;
                     $tableName = $tName;
                     break;
                 }
@@ -99,16 +99,16 @@ final class VirtualSchemaResolver
 
         // 4. Construct dynamic model/entity classes if not present
         if ($modelClass === null) {
-            $safeName   = preg_replace('/[^a-zA-Z0-9_]/', '', $tableName);
-            $safeName   = ucfirst($safeName);
+            $safeName = preg_replace('/[^a-zA-Z0-9_]/', '', $tableName);
+            $safeName = ucfirst($safeName);
             $modelClass = "Jengo\\Schema\\Dynamic\\{$safeName}Model";
-            if (! class_exists($modelClass)) {
+            if (!class_exists($modelClass)) {
                 $fieldsList = [];
                 foreach ($table->fields as $f) {
                     $fieldsList[] = $f->name;
                 }
                 $allowedStr = "['" . implode("', '", $fieldsList) . "']";
-                eval("
+                eval ("
                     namespace Jengo\\Schema\\Dynamic;
                     class {$safeName}Model extends \\CodeIgniter\\Model {
                         protected \$table = '{$tableName}';
@@ -120,16 +120,16 @@ final class VirtualSchemaResolver
         }
 
         // 5. Map fields
-        $fields  = [];
+        $fields = [];
         $primary = null;
 
         foreach ($table->fields as $field) {
             $dbType = strtolower($field->type ?? 'string');
-            $type   = match ($dbType) {
+            $type = match ($dbType) {
                 'int', 'integer', 'tinyint', 'smallint', 'mediumint', 'bigint' => 'int',
-                'float', 'double', 'decimal', 'numeric', 'real'                => 'float',
-                'boolean', 'bool'                                              => 'bool',
-                default                                                        => 'string',
+                'float', 'double', 'decimal', 'numeric', 'real' => 'float',
+                'boolean', 'bool' => 'bool',
+                default => 'string',
             };
             $propType = new PropertyType([$type], true);
             if ($field->primary_key) {
@@ -149,7 +149,7 @@ final class VirtualSchemaResolver
             }
         }
 
-        if (! $primary) {
+        if (!$primary) {
             $primary = new FieldMetadata(
                 name: 'id',
                 type: new PropertyType(['int'], true),
@@ -162,7 +162,7 @@ final class VirtualSchemaResolver
         if (str_starts_with($modelClass, 'Jengo\\Schema\\Dynamic\\')) {
             try {
                 $modelInstance = new $modelClass();
-                $ref           = new ReflectionProperty($modelInstance, 'primaryKey');
+                $ref = new ReflectionProperty($modelInstance, 'primaryKey');
                 $ref->setValue($modelInstance, $primary->name);
             } catch (Throwable $e) {
                 // Ignore reflection adjustments on failures
@@ -182,19 +182,19 @@ final class VirtualSchemaResolver
 
             // Determine local key and foreign key from pivots or fallback
             $fromField = '';
-            $toField   = '';
+            $toField = '';
 
-            if (! empty($relation->pivots)) {
-                $pivot     = $relation->pivots[0];
+            if (!empty($relation->pivots)) {
+                $pivot = $relation->pivots[0];
                 $fromField = $pivot[1];
-                $toField   = $pivot[3];
+                $toField = $pivot[3];
             } else {
                 if ($relation->type === 'belongsTo') {
                     $fromField = singular($relation->table) . '_id';
-                    $toField   = 'id';
+                    $toField = 'id';
                 } else {
                     $fromField = 'id';
-                    $toField   = singular($tableName) . '_id';
+                    $toField = singular($tableName) . '_id';
                 }
             }
 
@@ -210,7 +210,7 @@ final class VirtualSchemaResolver
                 fromField: $fromField,
                 toField: $toField,
                 select: [],
-                many: ! $relation->singleton,
+                many: !$relation->singleton,
             );
 
             // Add implicit derived fields
@@ -223,7 +223,7 @@ final class VirtualSchemaResolver
         }
 
         if ($entityClass === null) {
-            $config      = config('Schema');
+            $config = config('JengoSchema');
             $entityClass = $config->entityMap[$tableName] ?? stdClass::class;
         }
 

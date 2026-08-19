@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Jengo\Schema\Query;
 
-use Jengo\Schema\Config\Schema as SchemaConfig;
+use Jengo\Schema\Config\JengoSchema as SchemaConfig;
 use Jengo\Schema\Query\DTO\PaginationOptions;
 use Jengo\Schema\Query\DTO\ParamOptions;
 use Jengo\Schema\Query\DTO\QueryOptions;

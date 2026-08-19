@@ -35,8 +35,8 @@ final class NewFeaturesTest extends TestCase
         // Seed 1 user, but 0 files
         $this->db->table('users')->insert([
             'first_name' => 'Alice',
-            'last_name'  => 'Smith',
-            'email'      => 'alice@example.com',
+            'last_name' => 'Smith',
+            'email' => 'alice@example.com',
         ]);
         $userId = (int) $this->db->insertID();
 
@@ -56,8 +56,8 @@ final class NewFeaturesTest extends TestCase
         for ($i = 1; $i <= 5; $i++) {
             $this->db->table('users')->insert([
                 'first_name' => "User {$i}",
-                'last_name'  => 'Test',
-                'email'      => "user{$i}@example.com",
+                'last_name' => 'Test',
+                'email' => "user{$i}@example.com",
             ]);
         }
 
@@ -76,15 +76,15 @@ final class NewFeaturesTest extends TestCase
         // Seed 2 users
         $this->db->table('users')->insert([
             'first_name' => 'Alice',
-            'last_name'  => 'Smith',
-            'email'      => 'alice@example.com',
+            'last_name' => 'Smith',
+            'email' => 'alice@example.com',
         ]);
         $id1 = (int) $this->db->insertID();
 
         $this->db->table('users')->insert([
             'first_name' => 'Bob',
-            'last_name'  => 'Jones',
-            'email'      => 'bob@example.com',
+            'last_name' => 'Jones',
+            'email' => 'bob@example.com',
         ]);
         $id2 = (int) $this->db->insertID();
 
@@ -100,16 +100,16 @@ final class NewFeaturesTest extends TestCase
         // Seed 1 user
         $this->db->table('users')->insert([
             'first_name' => 'Alice',
-            'last_name'  => 'Smith',
-            'email'      => 'alice@example.com',
+            'last_name' => 'Smith',
+            'email' => 'alice@example.com',
         ]);
         $userId = (int) $this->db->insertID();
 
         // Seed 1 file for user
         $this->db->table('user_files')->insert([
-            'name'    => 'document.txt',
-            'size'    => 1024.0,
-            'path'    => '/docs/document.txt',
+            'name' => 'document.txt',
+            'size' => 1024.0,
+            'path' => '/docs/document.txt',
             'user_id' => $userId,
         ]);
 
@@ -132,28 +132,28 @@ final class NewFeaturesTest extends TestCase
 
     public function testHydratorPreservesStringAndFloatPrimaryKeys()
     {
-        $ref    = new ReflectionClass(Hydrator::class);
+        $ref = new ReflectionClass(Hydrator::class);
         $method = $ref->getMethod('hydrateNode');
         $method->setAccessible(true);
 
-        $schema  = SchemaReflector::reflect(UserSchema::class);
-        $node    = new Node($schema);
+        $schema = SchemaReflector::reflect(UserSchema::class);
+        $node = new Node($schema);
         $options = new QueryOptions();
-        $plan    = new QueryPlan($node, $options);
+        $plan = new QueryPlan($node, $options);
         Query::set(QueryPlan::class, $plan);
 
         $rows = [
             [
-                't_0_root__id'         => '0123',
+                't_0_root__id' => '0123',
                 't_0_root__first_name' => 'Alice',
-                't_0_root__last_name'  => 'Smith',
-                't_0_root__email'      => 'alice@example.com',
+                't_0_root__last_name' => 'Smith',
+                't_0_root__email' => 'alice@example.com',
             ],
             [
-                't_0_root__id'         => '1.5',
+                't_0_root__id' => '1.5',
                 't_0_root__first_name' => 'Bob',
-                't_0_root__last_name'  => 'Jones',
-                't_0_root__email'      => 'bob@example.com',
+                't_0_root__last_name' => 'Jones',
+                't_0_root__email' => 'bob@example.com',
             ],
         ];
 
@@ -174,8 +174,8 @@ final class NewFeaturesTest extends TestCase
         for ($i = 1; $i <= 5; $i++) {
             $this->db->table('users')->insert([
                 'first_name' => "User {$i}",
-                'last_name'  => 'Test',
-                'email'      => "user{$i}@example.com",
+                'last_name' => 'Test',
+                'email' => "user{$i}@example.com",
             ]);
         }
 
@@ -197,9 +197,9 @@ final class NewFeaturesTest extends TestCase
         $_GET = [];
 
         // Mock incoming HTTP GET parameters
-        $_GET['first_name']         = 'Alice';
-        $_GET['select']             = 'email';
-        $_GET['page_custom_group']  = '2';
+        $_GET['first_name'] = 'Alice';
+        $_GET['select'] = 'email';
+        $_GET['page_custom_group'] = '2';
         $_GET['limit_custom_group'] = '2';
         request()->setGlobal('get', $_GET);
 
@@ -207,8 +207,8 @@ final class NewFeaturesTest extends TestCase
         for ($i = 1; $i <= 5; $i++) {
             $this->db->table('users')->insert([
                 'first_name' => "User {$i}",
-                'last_name'  => 'Test',
-                'email'      => "user{$i}@example.com",
+                'last_name' => 'Test',
+                'email' => "user{$i}@example.com",
             ]);
         }
 
@@ -241,18 +241,18 @@ final class NewFeaturesTest extends TestCase
         // Seed users
         $this->db->table('users')->insert([
             'first_name' => 'Alice',
-            'last_name'  => 'Smith',
-            'email'      => 'alice@example.com',
+            'last_name' => 'Smith',
+            'email' => 'alice@example.com',
         ]);
         $this->db->table('users')->insert([
             'first_name' => 'Alicia',
-            'last_name'  => 'Keys',
-            'email'      => 'alicia@example.com',
+            'last_name' => 'Keys',
+            'email' => 'alicia@example.com',
         ]);
         $this->db->table('users')->insert([
             'first_name' => 'Bob',
-            'last_name'  => 'Alice',
-            'email'      => 'bob@example.com',
+            'last_name' => 'Alice',
+            'email' => 'bob@example.com',
         ]);
 
         // 1. Runtime specific fields search: search 'Alice' but ONLY on 'last_name'
@@ -280,12 +280,12 @@ final class NewFeaturesTest extends TestCase
     public function testOpenModeDefaultLimitWhenPaginationAllowed()
     {
         // 1. Without pre-configured limit
-        $query1  = query(UserSchema::class)->open(['pagination']);
+        $query1 = query(UserSchema::class)->open(['pagination']);
         $result1 = $query1->get();
         $this->assertSame(15, $result1->pagination->limit);
 
         // 2. With pre-configured limit
-        $query2  = query(UserSchema::class)->limit(5)->open(['pagination']);
+        $query2 = query(UserSchema::class)->limit(5)->open(['pagination']);
         $result2 = $query2->get();
         $this->assertSame(5, $result2->pagination->limit);
     }
@@ -294,14 +294,14 @@ final class NewFeaturesTest extends TestCase
     {
         $userId = $this->db->table('users')->insert([
             'first_name' => 'Charlie',
-            'last_name'  => 'Brown',
-            'email'      => 'charlie@example.com',
+            'last_name' => 'Brown',
+            'email' => 'charlie@example.com',
         ]);
 
         $this->db->table('user_files')->insert([
-            'name'    => 'charlie_report.pdf',
-            'size'    => 2048.0,
-            'path'    => '/docs/charlie_report.pdf',
+            'name' => 'charlie_report.pdf',
+            'size' => 2048.0,
+            'path' => '/docs/charlie_report.pdf',
             'user_id' => $userId,
         ]);
 
@@ -319,14 +319,14 @@ final class NewFeaturesTest extends TestCase
     {
         $userId = $this->db->table('users')->insert([
             'first_name' => 'Charlie',
-            'last_name'  => 'Brown',
-            'email'      => 'charlie@example.com',
+            'last_name' => 'Brown',
+            'email' => 'charlie@example.com',
         ]);
 
         $this->db->table('user_files')->insert([
-            'name'    => 'charlie_report.pdf',
-            'size'    => 2048.0,
-            'path'    => '/docs/charlie_report.pdf',
+            'name' => 'charlie_report.pdf',
+            'size' => 2048.0,
+            'path' => '/docs/charlie_report.pdf',
             'user_id' => $userId,
         ]);
 
@@ -351,8 +351,8 @@ final class NewFeaturesTest extends TestCase
     {
         $userId = $this->db->table('users')->insert([
             'first_name' => 'Charlie',
-            'last_name'  => 'Brown',
-            'email'      => 'charlie2@example.com',
+            'last_name' => 'Brown',
+            'email' => 'charlie2@example.com',
         ]);
 
         $result = query('users')
@@ -369,11 +369,11 @@ final class NewFeaturesTest extends TestCase
     {
         $this->db->table('users')->insert([
             'first_name' => 'Charlie',
-            'last_name'  => 'Brown',
-            'email'      => 'charlie3@example.com',
+            'last_name' => 'Brown',
+            'email' => 'charlie3@example.com',
         ]);
 
-        $config            = config('Schema');
+        $config = config('JengoSchema');
         $config->entityMap = [
             'users' => User::class,
         ];

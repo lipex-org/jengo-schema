@@ -65,11 +65,30 @@ final class SchemaCommandTest extends TestCase
         $forge->dropTable('temp_test_table', true);
     }
 
+    public function testSchemaSetupCommand(): void
+    {
+        $publishedFile = APPPATH . 'Config/JengoSchema.php';
+        if (file_exists($publishedFile)) {
+            unlink($publishedFile);
+        }
+
+        command('jengo:schema setup');
+
+        $this->assertFileExists($publishedFile);
+        $content = file_get_contents($publishedFile);
+        $this->assertStringContainsString('class JengoSchema extends BaseJengoSchema', $content);
+    }
+
     private function cleanFileSystem(): void
     {
         $schemaFile = APPPATH . 'Schemas/TempTestTableSchema.php';
         if (file_exists($schemaFile)) {
             unlink($schemaFile);
+        }
+
+        $publishedFile = APPPATH . 'Config/JengoSchema.php';
+        if (file_exists($publishedFile)) {
+            unlink($publishedFile);
         }
 
         $tsDir = SUPPORTPATH . 'ts_schemas';

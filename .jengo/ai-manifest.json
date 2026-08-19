@@ -1,6 +1,6 @@
 {
   "name": "jengo/schema",
-  "description": "Custom declarative ORM and Database Schema mapping tool for CodeIgniter 4. Enables data hydration, fluent query building, relationship mapping, and computed properties using PHP Attributes. Responses are non-paginated by default, and pagination is activated when limit is set outright. Pagination links automatically append the pagination group suffix (e.g. ?page_custom_group=X) if a custom group is specified.",
+  "description": "Custom declarative ORM and Database Schema mapping tool for CodeIgniter 4. Enables data hydration, fluent query building, relationship mapping, cursor-based and offset pagination, TypeScript definitions generation, and computed properties using PHP Attributes.",
   "attributes": [
     {
       "class": "Jengo\\Schema\\Attributes\\Model",
@@ -22,8 +22,8 @@
       "target": "Property",
       "description": "Maps a property to a database field, enabling searchable filters and value casting.",
       "arguments": {
-        "searchable": "bool (If true, this field is scanned during search operations)",
-        "cast": "Jengo\\Schema\\Hydration\\Enums\\Cast (Casts database values to array, bool, int, float, string, object, datetime)"
+        "searchable": "bool (If true, this field is scanned during search operations, defaults to false)",
+        "cast": "Jengo\\Schema\\Hydration\\Enums\\Cast (Casts database values to array, bool, int, float, string, object, datetime, json)"
       }
     },
     {
@@ -48,7 +48,8 @@
       "description": "Declares a many-to-one relationship.",
       "arguments": {
         "relation": "class-string (The related Schema class)",
-        "foreignKey": "string (The local foreign key column mapping)"
+        "foreignKey": "string (The local foreign key column mapping)",
+        "ownerKey": "string (The target table's primary key mapping)"
       }
     },
     {
@@ -57,31 +58,52 @@
       "description": "Declares a one-to-many relationship.",
       "arguments": {
         "relation": "class-string (The related Schema class)",
-        "foreignKey": "string (The target table's foreign key mapping)"
+        "foreignKey": "string (The target table's foreign key mapping)",
+        "localKey": "string (The local primary key mapping)"
       }
     }
   ],
   "query_builder": {
     "class": "Jengo\\Schema\\Query\\FluentQueryAPI",
-    "description": "Fluent query wrapper constructed via the query() helper. Manages criteria composition, join resolution, sorting, and pagination. In OPEN mode, pagination (page and limit) is controlled directly via request parameters. Use paginationGroup() to set the group name and align request keys (e.g. ?page_group=X) without needing paginate() unless setting default fallback limits.",
+    "description": "Fluent query wrapper constructed via the query() helper. Manages criteria composition, join resolution, sorting, cursor-based pagination (using base64-encoded cursors via after option), and offset pagination. In OPEN mode, pagination is controlled directly via request parameters.",
     "methods": {
       "where": "where(string $column, mixed $value, bool $isOr = false): self (Applies basic filter)",
       "limit": "limit(int $limit): self (Applies query limit and enables pagination)",
       "page": "page(int $page): self (Specifies pagination page)",
-      "paginate": "paginate(int $page, int $perPage = 15, string $group = 'default'): self (Applies page, limit, and configures pagination group for generating links)",
-      "paginationGroup": "paginationGroup(string $group): self (Sets custom pagination group used for links)",
-      "search": "search(?string $term, array $fields = [], string $side = 'both', ?bool $caseInsensitive = null): self (Performs an advanced search with custom columns, wildcard direction, and case-sensitivity control)",
+      "after": "after(string $cursor): self (Applies opaque base64-encoded cursor for infinite scrolling)",
+      "paginate": "paginate(int $page, int $perPage = 15, string $group = 'default'): self",
+      "search": "search(?string $term, array $fields = [], string $side = 'both', ?bool $caseInsensitive = null): self",
       "sortBy": "sortBy(string $column, string|SortOrder $direction = SortOrder::ASC): self",
-      "select": "select(array|string $fields): self (Select specific columns)",
-      "derive": "derive(array|string $relations): self (Loads specific HasMany/BelongsTo relations)",
-      "mode": "mode(QueryMode $mode): self (Configures query hydration mode)",
-      "inline": "inline(): self (Runs in manual inline builder mode)",
-      "open": "open(): self (Runs in dynamic request-driven hydration mode, auto-building queries based on client request parameters)",
-      "first": "first(): QueryResult (Executes query and returns first matched record)",
-      "find": "find(mixed $id): QueryResult (Performs where clause on primary key and returns first match)",
-      "get": "get(): QueryResult (Executes and returns hydrated results)"
+      "select": "select(array|string $fields): self",
+      "derive": "derive(array|string $relations): self",
+      "mode": "mode(QueryMode $mode): self",
+      "inline": "inline(): self",
+      "open": "open(): self",
+      "first": "first(): QueryResult",
+      "find": "find(mixed $id): QueryResult",
+      "get": "get(): QueryResult"
     }
   },
+  "commands": [
+    {
+      "name": "jengo:schema setup",
+      "description": "Publishes the default config/JengoSchema.php file into the project app/Config directory."
+    },
+    {
+      "name": "jengo:schema generate",
+      "description": "Dynamically scans active PSR-4 model directories to automatically map, draft, and generate PHP Schema classes and optional TypeScript definitions.",
+      "options": {
+        "--table": "Generate schema for a specific table only",
+        "--force": "Force overwrite of existing files",
+        "--namespace": "Specify custom namespace",
+        "--dir": "Specify custom output directory",
+        "--dry-run": "Simulate run without writing files",
+        "--with-vendor": "Include vendor/system tables in generation",
+        "--ts": "Generate TypeScript interfaces",
+        "--ts-dir": "Specify custom output directory for TypeScript interfaces"
+      }
+    }
+  ],
   "helpers": [
     {
       "name": "query",
@@ -91,11 +113,7 @@
     {
       "name": "dump_query",
       "signature": "dump_query(): void",
-      "description": "Dumps all queries executed by the QueryLogger for debugging purposes (disabled in production)."
+      "description": "Dumps all queries executed by the QueryLogger for debugging purposes."
     }
-  ],
-  "usage": {
-    "declarative_schema": "#[Model(model: OrderModel::class)]\nclass OrderSchema {\n    #[PrimaryKey]\n    public int $id;\n    \n    #[Field(searchable: true)]\n    public string $reference;\n\n    #[Field(cast: Cast::float)]\n    public float $total;\n\n    #[BelongsTo(relation: UserSchema::class, foreignKey: 'user_id')]\n    public ?UserSchema $user;\n}",
-    "querying": "$orders = query(OrderSchema::class)\n    ->where('total', 100.00)\n    ->derive('user')\n    ->inline()\n    ->get();"
-  }
+  ]
 }

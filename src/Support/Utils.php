@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Jengo\Schema\Support;
 
-use Jengo\Schema\Config\Schema;
+use Jengo\Schema\Config\JengoSchema;
 
 final class Utils
 {
-    public static function config(): Schema
+    public static function config(): JengoSchema
     {
-        return config('Schema');
+        return config('JengoSchema');
     }
 }

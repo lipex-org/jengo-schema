@@ -1,14 +1,12 @@
 <?php
 
-declare(strict_types=1);
+namespace Config;
 
-namespace Jengo\Schema\Config;
-
-use CodeIgniter\Config\BaseConfig;
+use Jengo\Schema\Config\JengoSchema as BaseJengoSchema;
 use Jengo\Schema\Query\DTO\PaginationOptions;
 use Jengo\Schema\Query\DTO\SortOptions;
 
-class Schema extends BaseConfig
+class JengoSchema extends BaseJengoSchema
 {
     /**
      * Enable query logging globally
@@ -42,24 +40,18 @@ class Schema extends BaseConfig
     /**
      * Generator configurations
      */
-    public string $generatorNamespace = 'App\\Schemas';
-    public string $generatorDirectory = APPPATH . 'Schemas';
-    public bool $generateTypeScript    = false;
-    public string $typeScriptDirectory = ROOTPATH . 'resources/js/types/schemas';
-
+    public array $generator = [
+        'namespace' => 'App\\Schemas',
+        'directory' => APPPATH . 'Schemas',
+        'ts' => false,
+        'ts-directory' => ROOTPATH . 'resources/js/types/schemas'
+    ];
     /**
      * Pagination UI / link-generation policy
      */
-    public bool $includeNextAndPrevious = true;
-
-    public bool $includePaginationMore = true;
-    public string $defaultMoreLabel    = '...';
-
-    public function __construct()
-    {
-        parent::__construct();
-
-        $this->paginationOptions = new PaginationOptions();
-        $this->sortOptions       = new SortOptions();
-    }
+    public array $pagination = [
+        'withNextAndPrevious' => true,
+        'withMore' => true,
+        'moreLabel' => '...'
+    ];
 }

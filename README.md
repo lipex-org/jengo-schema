@@ -1,116 +1,103 @@
 # Jengo Schema
 
-Declarative schema-driven querying for CodeIgniter 4
+Declarative schema-driven querying for CodeIgniter 4.
 
-Jengo Schema is an experimental package that brings structured, schema-based querying, relationship derivation, and entity hydration to CodeIgniter 4 applications.
+Jengo Schema brings structured, schema-based querying, relationship derivation, entity hydration, infinite-scrolling cursor pagination, and automated TypeScript definitions generation to CodeIgniter 4 applications.
 
-## Development Status
+---
 
-This package is currently in active development (dev version).
-APIs may change
+## Core Features
 
-Behavior is still being validated
-Not recommended for production yet
+- **Schema-First Declarative Design**: Define structures, relations, field casting, and database model mappings using native PHP 8 Attributes.
+- **Fluent Query API**: Build robust queries with automatic relationship derivation and nested joins (e.g. `derive('members.user')`).
+- **Cursor & Offset Pagination**: Supports traditional offset-based pagination and modern opaque cursor-based pagination (`after`) for infinite scroll setups (complete with `$hasMore`, `$nextPage`, and `$nextCursor` DTO indicators).
+- **Interactive Schema & TypeScript Generator**: Automates writing PHP Schema files and TypeScript definitions directly from database structure metadata.
+- **Debug Tools**: Built-in QueryLogger and query plan explainer (`Explain`).
 
-That said, it is already usable for:
-Local development
-Prototyping
-Internal tools
-Early adopters who want to help test
-We are targeting a beta release shortly, followed by a stable v1.0 once the fluent query builder is finalized.
+---
 
-## Key Features
+## Spark Commands
 
-- Schema-first design using PHP attributes
-- Declarative relationships (BelongsTo, HasMany)
-- Automatic join resolution
-- Nested derivation (derive('members.user'))
-- Request-aware query options (OPEN mode)
-- Inline programmatic queries (INLINE mode)
-- Deterministic query planning
-- Entity hydration
-- Debug tools (Explain, QueryLogger)
+### 1. Setup Command
+Publishes the default `JengoSchema.php` configuration file into the project's `app/Config` directory:
+```bash
+php spark jengo:schema setup
+```
 
-## Core Concepts
+### 2. Generate Command
+Automatically scans active PSR-4 namespace mappings to map database tables and generate matching Jengo Schema classes along with optional TypeScript definition files:
+```bash
+php spark jengo:schema generate [options]
+```
 
-### Schema
-A schema describes:
-The CI4 model
-The entity
-Fields and relationships
-How data should be derived
-Schemas are the source of truth for queries.
+**Options:**
+- `--table`: Generate schema for a specific table only.
+- `--force`: Force overwrite existing schema files.
+- `--dbgroup`: Specify the database group to connect to.
+- `--namespace`: Specify custom namespace for the generated schema classes (defaults to `App\Schemas`).
+- `--dir`: Specify custom directory where schema classes should be saved (defaults to `app/Schemas`).
+- `--dry-run`: Simulate generation without creating/modifying files on disk.
+- `--with-vendor`: Generate schemas for vendor/system tables (defaults to false, only project tables are generated).
+- `--ts`: Generate TypeScript interfaces alongside PHP Schemas.
+- `--ts-dir`: Specify custom output directory for TypeScript interfaces (defaults to `resources/js/types/schemas`).
 
-### Query Modes
-INLINE — programmatic, explicit options
-OPEN — request-driven, REST-friendly
+---
 
-#### Example Usage
+## Usage Examples
+
+### Declarative Schema Definition
+```php
+use Jengo\Schema\Attributes\Model;
+use Jengo\Schema\Attributes\PrimaryKey;
+use Jengo\Schema\Attributes\Field;
+use Jengo\Schema\Attributes\Relations\BelongsTo;
+use Jengo\Schema\Hydration\Enums\Cast;
+
+#[Model(model: OrderModel::class)]
+class OrderSchema 
+{
+    #[PrimaryKey]
+    public int $id;
+    
+    #[Field(searchable: true)]
+    public string $reference;
+
+    #[Field(cast: Cast::JSON)]
+    public array $metadata;
+
+    #[BelongsTo(relation: UserSchema::class, foreignKey: 'user_id')]
+    public ?UserSchema $user;
+}
+```
+
+### Querying & Cursor Pagination
 ```php
 use Jengo\Schema\Query\Query;
-use Jengo\Schema\Query\DTO\QueryOptions;
 
-$result = Query::run(
-    schema: UserSchema::class,
-    options: new QueryOptions(
-        derive: ['profile'],
-        pagination: new PaginationOptions(limit: 10),
-    )
-);
-```
-
-`Fluent API (coming soon)`
-```php
-query(UserSchema::class)
+// Traditional Offset Pagination
+$orders = query(OrderSchema::class)
     ->inline()
-    ->where('id', 1)
-    ->derive('profile')
-    ->first();
+    ->where('status', 'completed')
+    ->paginate(1, 15);
+
+// Cursor-Based Infinite Scrolling (Base64 Cursor)
+$nextPage = query(OrderSchema::class)
+    ->inline()
+    ->after($base64CursorString)
+    ->limit(10)
+    ->get();
 ```
 
-### Debugging
+---
 
-#### Explain
-Inspect how a query is planned before execution.
+## Testing
 
-```php
-Explain::for(UserSchema::class)
-    ->derive(['profile'])
-    ->dump();
-
+This package includes a complete feature and unit test suite verifying schema reflection, query planning, hydration, cursor computation logic, and command executions:
+```bash
+./vendor/bin/phpunit
 ```
-#### Query Logger
 
-Track executed queries, joins, and execution time.
-```php
-config('Schema')->logger = true;
-```
-### Testing
-
-This package includes:
-
-- Unit tests for schema reflection
-- Relationship graph validation
-- Query plan tests
-- Integration tests with CI4’s testing database
-
-Contributions that improve test coverage are welcome.
-
-## Roadmap
-
-- Schema reflection
-- Relationship graph
-- Query planning
-- Hydration
-- Fluent query builder
-- Better error messages
-- Performance benchmarks
-- Beta release
-- Stable v1.0
-
-## Contributing
-
-This project is still evolving. Feedback, issues, and ideas are welcome.
+---
 
 ## License
 
