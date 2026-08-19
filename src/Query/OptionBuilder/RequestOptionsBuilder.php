@@ -130,6 +130,7 @@ final class RequestOptionsBuilder
                 after: $after,
                 clamp: $pagination->clamp,
                 clampPage: $pagination->clampPage,
+                clampForce: $pagination->clampForce,
             );
         }
 

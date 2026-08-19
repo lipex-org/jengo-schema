@@ -89,6 +89,7 @@ final class OptionsResolver
             after: $pagination->after,
             clamp: $pagination->clamp,
             clampPage: $pagination->clampPage,
+            clampForce: $pagination->clampForce,
         );
     }
 

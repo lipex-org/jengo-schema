@@ -45,28 +45,42 @@ final class Query
         // build and exceute query
         $builderResult = QueryBuilder::build($graph->root, $options, $plan)->execute();
 
-        // Check if clamping is requested and page/cursor is out of range
-        if ($options->pagination->clamp && $options->pagination->limit > 0 && $builderResult->total > 0 && empty($builderResult->rows)) {
+        // Check if clamping is requested
+        if ($options->pagination->clamp && $options->pagination->limit > 0 && $builderResult->total > 0) {
             $lastPage = (int) ceil($builderResult->total / $options->pagination->limit);
+
+            // Resolve fallback target page
+            $fallbackPageVal = is_callable($options->pagination->clampPage)
+                ? ($options->pagination->clampPage)()
+                : $options->pagination->clampPage;
+
+            $targetPage = ($fallbackPageVal !== null) ? (int)$fallbackPageVal : $lastPage;
+            if ($targetPage < 1) {
+                $targetPage = 1;
+            }
+
+            // Resolve force flag
+            $clampForceVal = is_callable($options->pagination->clampForce)
+                ? (bool)($options->pagination->clampForce)()
+                : (bool)$options->pagination->clampForce;
+
             $shouldClamp = false;
 
-            if ($options->pagination->page > 1 && $options->pagination->page > $lastPage) {
-                $shouldClamp = true;
-            } elseif ($options->pagination->after !== null) {
-                $shouldClamp = true;
+            if (empty($builderResult->rows)) {
+                if ($options->pagination->page > 1 && $options->pagination->page > $lastPage) {
+                    $shouldClamp = true;
+                } elseif ($options->pagination->after !== null) {
+                    $shouldClamp = true;
+                }
+            } elseif ($clampForceVal) {
+                if ($options->pagination->page !== $targetPage) {
+                    $shouldClamp = true;
+                } elseif ($options->pagination->after !== null) {
+                    $shouldClamp = true;
+                }
             }
 
             if ($shouldClamp) {
-                // Resolve fallback target page
-                $fallbackPageVal = is_callable($options->pagination->clampPage)
-                    ? ($options->pagination->clampPage)()
-                    : $options->pagination->clampPage;
-
-                $targetPage = ($fallbackPageVal !== null) ? (int)$fallbackPageVal : $lastPage;
-                if ($targetPage < 1) {
-                    $targetPage = 1;
-                }
-
                 $newPagination = new PaginationOptions(
                     limit: $options->pagination->limit,
                     page: $targetPage,
@@ -76,6 +90,7 @@ final class Query
                     after: null,
                     clamp: $options->pagination->clamp,
                     clampPage: $options->pagination->clampPage,
+                    clampForce: $options->pagination->clampForce,
                 );
                 $options = new QueryOptions(
                     params: $options->params,

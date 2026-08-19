@@ -42,6 +42,7 @@ final class FluentQueryAPI
     private ?string $entityClass         = null;
     private mixed $clamp                 = false;
     private mixed $clampPage             = null;
+    private mixed $clampForce            = false;
     private ?string $after               = null;
 
     public function __construct(
@@ -535,11 +536,13 @@ final class FluentQueryAPI
      *
      * @param bool|callable $enable
      * @param mixed $fallbackPage
+     * @param bool|callable $force
      */
-    public function clamp(bool|callable $enable = true, mixed $fallbackPage = null): self
+    public function clamp(bool|callable $enable = true, mixed $fallbackPage = null, bool|callable $force = false): self
     {
-        $this->clamp     = $enable;
-        $this->clampPage = $fallbackPage;
+        $this->clamp      = $enable;
+        $this->clampPage  = $fallbackPage;
+        $this->clampForce = $force;
 
         return $this;
     }
@@ -564,6 +567,7 @@ final class FluentQueryAPI
                 after: $this->after,
                 clamp: is_callable($this->clamp) ? (bool) ($this->clamp)() : (bool) $this->clamp,
                 clampPage: $this->clampPage,
+                clampForce: $this->clampForce,
             ),
             derive: $this->derive,
             sort: new SortOptions(

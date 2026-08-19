@@ -336,5 +336,56 @@ final class QueryRunTest extends TestCase
         $this->assertCount(2, $fluentTargetClosure->data);
         $this->assertSame('File A', $fluentTargetClosure->data[0]->name);
         $this->assertSame(1, $fluentTargetClosure->pagination->page);
+
+        // 13. Test clamping in openMode with custom target page (page 1)
+        service('request')->setGlobal('get', ['page' => '5']);
+        try {
+            $fluentOpenClampTargetOne = \Jengo\Schema\query(UserFileSchema::class)
+                ->open()
+                ->limit(2)
+                ->clamp(true, 1)
+                ->sort('size', \Jengo\Schema\Query\Enums\SortOrder::ASC)
+                ->get();
+            $this->assertCount(2, $fluentOpenClampTargetOne->data);
+            $this->assertSame(1, $fluentOpenClampTargetOne->pagination->page);
+        } finally {
+            service('request')->setGlobal('get', []);
+        }
+
+        // 14. Test clampForce = true (even when page 2 has data, force reset to page 1)
+        $fluentForceClamp = \Jengo\Schema\query(UserFileSchema::class)
+            ->inline()
+            ->limit(2)
+            ->page(2)
+            ->clamp(true, 1, true)
+            ->sort('size', \Jengo\Schema\Query\Enums\SortOrder::ASC)
+            ->get();
+        $this->assertCount(2, $fluentForceClamp->data);
+        $this->assertSame('File A', $fluentForceClamp->data[0]->name);
+        $this->assertSame(1, $fluentForceClamp->pagination->page);
+
+        // 15. Test clampForce closure returning true
+        $fluentForceClosureTrue = \Jengo\Schema\query(UserFileSchema::class)
+            ->inline()
+            ->limit(2)
+            ->page(2)
+            ->clamp(true, 1, fn() => true)
+            ->sort('size', \Jengo\Schema\Query\Enums\SortOrder::ASC)
+            ->get();
+        $this->assertCount(2, $fluentForceClosureTrue->data);
+        $this->assertSame('File A', $fluentForceClosureTrue->data[0]->name);
+        $this->assertSame(1, $fluentForceClosureTrue->pagination->page);
+
+        // 16. Test clampForce closure returning false (should NOT clamp since it has data and force is false)
+        $fluentForceClosureFalse = \Jengo\Schema\query(UserFileSchema::class)
+            ->inline()
+            ->limit(2)
+            ->page(2)
+            ->clamp(true, 1, fn() => false)
+            ->sort('size', \Jengo\Schema\Query\Enums\SortOrder::ASC)
+            ->get();
+        $this->assertCount(2, $fluentForceClosureFalse->data);
+        $this->assertSame('File C', $fluentForceClosureFalse->data[0]->name);
+        $this->assertSame(2, $fluentForceClosureFalse->pagination->page);
     }
 }
