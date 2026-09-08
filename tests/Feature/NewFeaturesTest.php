@@ -292,11 +292,12 @@ final class NewFeaturesTest extends TestCase
 
     public function testRelatedTableSearchByDotNotation()
     {
-        $userId = $this->db->table('users')->insert([
+        $this->db->table('users')->insert([
             'first_name' => 'Charlie',
             'last_name' => 'Brown',
             'email' => 'charlie@example.com',
         ]);
+        $userId = (int) $this->db->insertID();
 
         $this->db->table('user_files')->insert([
             'name' => 'charlie_report.pdf',
@@ -317,11 +318,12 @@ final class NewFeaturesTest extends TestCase
 
     public function testVirtualSchemaQueryFromModelAndTable()
     {
-        $userId = $this->db->table('users')->insert([
+        $this->db->table('users')->insert([
             'first_name' => 'Charlie',
             'last_name' => 'Brown',
             'email' => 'charlie@example.com',
         ]);
+        $userId = (int) $this->db->insertID();
 
         $this->db->table('user_files')->insert([
             'name' => 'charlie_report.pdf',

@@ -22,17 +22,28 @@ class TestCase extends CIUnitTestCase
     use DatabaseTestTrait;
 
     protected $migrate = true;
-    protected $migrateOnce = false;
+    protected $migrateOnce = true;
     protected $refresh = true;
-    protected $namespace;
+    protected $tables = ['file_comments', 'user_files', 'profiles', 'users'];
+    protected $namespace = 'Tests\Support';
     protected bool $fill = true;
     protected MockInputOutput $io;
     protected array $cliOutputs;
 
     protected function setUp(): void
     {
-        $this->loadDependencies();
-        $this->migrateDatabase();
+        parent::setUp();
+
+        $conn = Database::connect('tests');
+        $conn->table('file_comments')->emptyTable();
+        $conn->table('user_files')->emptyTable();
+        $conn->table('profiles')->emptyTable();
+        $conn->table('users')->emptyTable();
+
+        try {
+            $conn->query('DELETE FROM sqlite_sequence WHERE name IN ("users", "user_files", "profiles", "file_comments")');
+        } catch (\Throwable $e) {
+        }
 
         if ($this->fill) {
             $this->generateData();
@@ -45,13 +56,11 @@ class TestCase extends CIUnitTestCase
 
     protected function tearDown(): void
     {
-        $this->regressDatabase();
-        $this->loadDependencies();
-        $this->migrateDatabase();
-
         $this->cliOutputs = $this->io->getOutputs();
 
         CLI::resetInputOutput();
+
+        parent::tearDown();
     }
 
     private function generateData(): void
@@ -62,6 +71,11 @@ class TestCase extends CIUnitTestCase
         $userProfileModel = new ProfileModel($conn);
 
         $users = (new Fabricator($userModel))->make(10);
+        foreach ($users as $i => &$user) {
+            $user['id'] = $i + 1;
+        }
+        unset($user);
+
         $userFiles = (new Fabricator($userFileModel))->make(10);
         $userProfiles = (new Fabricator($userProfileModel))->make(10);
 

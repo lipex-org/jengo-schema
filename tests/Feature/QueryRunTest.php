@@ -33,20 +33,23 @@ final class QueryRunTest extends TestCase
      */
     public function testRunReturnsSingleObjectWhenFirstIsTrue(): void
     {
-        $this->tearDown();
         // Seed 1 user with 1 file
-        $userId = $this->db->table('users')->insert([
+        $this->db->table('users')->insert([
+            'id'         => 1,
             'first_name' => 'Carleton',
             'last_name'  => 'Krajcik',
             'email'      => 'emmerich.rory@yahoo.com',
         ]);
+        $userId = 1;
 
-        $fileId = $this->db->table('user_files')->insert([
+        $this->db->table('user_files')->insert([
+            'id'      => 1,
             'name'    => 'Et.',
             'size'    => 5.6733,
             'path'    => 'Qui optio.',
             'user_id' => $userId,
         ]);
+        $fileId = 1;
 
         $options = new QueryOptions(
             params: new ParamOptions(['id' => $fileId]),
@@ -80,6 +83,7 @@ final class QueryRunTest extends TestCase
     public function testRunReturnsArrayOfArraysWhenFirstIsFalse(): void
     {
         $this->db->table('users')->insert([
+            'id'         => 1,
             'first_name' => 'Carleton',
             'last_name'  => 'Krajcik',
             'email'      => 'emmerich.rory@yahoo.com',
@@ -125,8 +129,8 @@ final class QueryRunTest extends TestCase
      */
     public function testRunIncludesComputedFieldsInResult(): void
     {
-        $this->tearDown();
         $this->db->table('users')->insert([
+            'id'         => 1,
             'first_name' => 'John',
             'last_name'  => 'Doe',
             'email'      => 'john@example.com',
@@ -141,8 +145,8 @@ final class QueryRunTest extends TestCase
 
     public function testCursorPagination(): void
     {
-        $this->tearDown();
         $this->db->table('users')->insert([
+            'id'         => 1,
             'first_name' => 'Carleton',
             'last_name'  => 'Krajcik',
             'email'      => 'emmerich.rory@yahoo.com',
@@ -184,8 +188,8 @@ final class QueryRunTest extends TestCase
 
     public function testPaginationClamping(): void
     {
-        $this->tearDown();
         $this->db->table('users')->insert([
+            'id'         => 1,
             'first_name' => 'Carleton',
             'last_name'  => 'Krajcik',
             'email'      => 'emmerich.rory@yahoo.com',
