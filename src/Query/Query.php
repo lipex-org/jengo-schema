@@ -46,7 +46,9 @@ final class Query
         $builderResult = QueryBuilder::build($graph->root, $options, $plan)->execute();
 
         // Check if clamping is requested
-        if ($options->pagination->clamp && $options->pagination->limit > 0 && $builderResult->total > 0) {
+        $isClamping = Clamp::resolve($options->pagination->clamp);
+
+        if ($isClamping && $options->pagination->limit > 0 && $builderResult->total > 0) {
             $lastPage = (int) ceil($builderResult->total / $options->pagination->limit);
 
             // Resolve fallback target page
@@ -81,6 +83,8 @@ final class Query
             }
 
             if ($shouldClamp) {
+                $originalRequestedPage = $options->pagination->page;
+
                 $newPagination = new PaginationOptions(
                     limit: $options->pagination->limit,
                     page: $targetPage,
@@ -91,6 +95,8 @@ final class Query
                     clamp: $options->pagination->clamp,
                     clampPage: $options->pagination->clampPage,
                     clampForce: $options->pagination->clampForce,
+                    clamped: true,
+                    requestedPage: $originalRequestedPage,
                 );
                 $options = new QueryOptions(
                     params: $options->params,

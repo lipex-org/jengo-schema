@@ -13,9 +13,11 @@ final class PaginationOptions
         public readonly bool $withQuery = true,
         public readonly string $group = 'default',
         public readonly ?string $after = null,
-        public readonly bool $clamp = false,
+        public readonly mixed $clamp = 'auto',
         public readonly mixed $clampPage = null,
         public readonly mixed $clampForce = false,
+        public readonly bool $clamped = false,
+        public readonly ?int $requestedPage = null,
     ) {
     }
 }

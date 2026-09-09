@@ -22,6 +22,21 @@ class JengoSchema extends BaseConfig
     public PaginationOptions $paginationOptions;
 
     /**
+     * Default pagination clamping behavior: 'auto' (context-aware), true, or false
+     */
+    public bool|string $clamp = 'auto';
+
+    /**
+     * Default fallback page when clamping (null defaults to lastPage)
+     */
+    public mixed $clampPage = null;
+
+    /**
+     * Default force clamping flag
+     */
+    public mixed $clampForce = false;
+
+    /**
      * Default sorting behavior
      */
     public SortOptions $sortOptions;
@@ -62,7 +77,11 @@ class JengoSchema extends BaseConfig
     {
         parent::__construct();
 
-        $this->paginationOptions = new PaginationOptions();
+        $this->paginationOptions = new PaginationOptions(
+            clamp: $this->clamp,
+            clampPage: $this->clampPage,
+            clampForce: $this->clampForce,
+        );
         $this->sortOptions = new SortOptions();
     }
 

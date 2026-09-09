@@ -121,6 +121,11 @@ final class RequestOptionsBuilder
             $limit = $request->getGet($limitKey) ?: $pagination->limit;
             $after = $request->getGet($afterKey) ?: $pagination->after;
 
+            $clampOverride = $request->getGet('clamp');
+            $clamp = $clampOverride !== null
+                ? filter_var($clampOverride, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $clampOverride
+                : $pagination->clamp;
+
             $pagination = new PaginationOptions(
                 limit: (int) $limit,
                 page: (int) $page,
@@ -128,9 +133,11 @@ final class RequestOptionsBuilder
                 withQuery: (bool) $withQuery,
                 group: (string) $group,
                 after: $after,
-                clamp: $pagination->clamp,
+                clamp: $clamp,
                 clampPage: $pagination->clampPage,
                 clampForce: $pagination->clampForce,
+                clamped: $pagination->clamped,
+                requestedPage: $pagination->requestedPage,
             );
         }
 

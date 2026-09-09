@@ -176,6 +176,8 @@ final class Hydrator
             hasMore: $hasMore,
             nextPage: $nextPage,
             nextCursor: $nextCursor,
+            clamped: $this->options->pagination->clamped,
+            requestedPage: $this->options->pagination->requestedPage,
         );
     }
 

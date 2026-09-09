@@ -391,5 +391,76 @@ final class QueryRunTest extends TestCase
         $this->assertCount(2, $fluentForceClosureFalse->data);
         $this->assertSame('File C', $fluentForceClosureFalse->data[0]->name);
         $this->assertSame(2, $fluentForceClosureFalse->pagination->page);
+
+        // 17. Clamping transparency: verify clamped and requestedPage metadata
+        $clampedMetadataResult = \Jengo\Schema\query(UserFileSchema::class)
+            ->inline()
+            ->limit(2)
+            ->page(5)
+            ->clamp(true)
+            ->sort('size', \Jengo\Schema\Query\Enums\SortOrder::ASC)
+            ->get();
+        $this->assertTrue($clampedMetadataResult->pagination->clamped);
+        $this->assertSame(5, $clampedMetadataResult->pagination->requestedPage);
+        $this->assertSame(2, $clampedMetadataResult->pagination->page);
+
+        // 18. Non-clamped transparency: verify clamped is false and requestedPage is null
+        $nonClampedMetadataResult = \Jengo\Schema\query(UserFileSchema::class)
+            ->inline()
+            ->limit(2)
+            ->page(1)
+            ->sort('size', \Jengo\Schema\Query\Enums\SortOrder::ASC)
+            ->get();
+        $this->assertFalse($nonClampedMetadataResult->pagination->clamped);
+        $this->assertNull($nonClampedMetadataResult->pagination->requestedPage);
+
+        // 19. Context-aware auto clamping: Inertia UI request clamps by default
+        request()->setHeader('X-Inertia', 'true');
+        try {
+            $inertiaAutoResult = \Jengo\Schema\query(UserFileSchema::class)
+                ->inline()
+                ->limit(2)
+                ->page(5)
+                ->sort('size', \Jengo\Schema\Query\Enums\SortOrder::ASC)
+                ->get();
+            $this->assertCount(2, $inertiaAutoResult->data);
+            $this->assertTrue($inertiaAutoResult->pagination->clamped);
+            $this->assertSame(2, $inertiaAutoResult->pagination->page);
+            $this->assertSame(5, $inertiaAutoResult->pagination->requestedPage);
+        } finally {
+            request()->removeHeader('X-Inertia');
+        }
+
+        // 20. Context-aware auto clamping: Pure API JSON request does NOT clamp by default
+        request()->setHeader('Accept', 'application/json');
+        try {
+            $apiAutoResult = \Jengo\Schema\query(UserFileSchema::class)
+                ->inline()
+                ->limit(2)
+                ->page(5)
+                ->sort('size', \Jengo\Schema\Query\Enums\SortOrder::ASC)
+                ->get();
+            $this->assertCount(0, $apiAutoResult->data);
+            $this->assertFalse($apiAutoResult->pagination->clamped);
+        } finally {
+            request()->removeHeader('Accept');
+        }
+
+        // 21. Explicit override: force clamping on in API context
+        request()->setHeader('Accept', 'application/json');
+        try {
+            $apiForcedClampResult = \Jengo\Schema\query(UserFileSchema::class)
+                ->inline()
+                ->limit(2)
+                ->page(5)
+                ->clamp(true)
+                ->sort('size', \Jengo\Schema\Query\Enums\SortOrder::ASC)
+                ->get();
+            $this->assertCount(2, $apiForcedClampResult->data);
+            $this->assertTrue($apiForcedClampResult->pagination->clamped);
+            $this->assertSame(2, $apiForcedClampResult->pagination->page);
+        } finally {
+            request()->removeHeader('Accept');
+        }
     }
 }

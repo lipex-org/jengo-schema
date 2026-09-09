@@ -40,7 +40,7 @@ final class FluentQueryAPI
     private string $paginationGroup      = 'default';
     private array $allowedCapabilities   = ['pagination'];
     private ?string $entityClass         = null;
-    private mixed $clamp                 = false;
+    private mixed $clamp                 = 'auto';
     private mixed $clampPage             = null;
     private mixed $clampForce            = false;
     private ?string $after               = null;
@@ -538,7 +538,7 @@ final class FluentQueryAPI
      * @param mixed $fallbackPage
      * @param bool|callable $force
      */
-    public function clamp(bool|callable $enable = true, mixed $fallbackPage = null, bool|callable $force = false): self
+    public function clamp(bool|string|callable $enable = true, mixed $fallbackPage = null, bool|callable $force = false): self
     {
         $this->clamp      = $enable;
         $this->clampPage  = $fallbackPage;
@@ -565,7 +565,7 @@ final class FluentQueryAPI
                 page: $this->page,
                 group: $this->paginationGroup,
                 after: $this->after,
-                clamp: is_callable($this->clamp) ? (bool) ($this->clamp)() : (bool) $this->clamp,
+                clamp: $this->clamp,
                 clampPage: $this->clampPage,
                 clampForce: $this->clampForce,
             ),

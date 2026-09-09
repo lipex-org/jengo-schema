@@ -17,6 +17,8 @@ final class PaginationData
         public bool $hasMore = false,
         public ?int $nextPage = null,
         public ?string $nextCursor = null,
+        public bool $clamped = false,
+        public ?int $requestedPage = null,
     ) {
     }
 }
