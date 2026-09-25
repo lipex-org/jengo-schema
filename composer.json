@@ -28,7 +28,7 @@
     "phpunit/phpunit": "^11.5"
   },
   "require": {
-    "codeigniter4/framework": "^4.6",
+    "codeigniter4/framework": "^4.7",
     "tatter/schemas": "^2.0",
     "jengo/base": "^1.1"
   },
