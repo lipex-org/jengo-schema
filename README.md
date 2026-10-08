@@ -1,8 +1,22 @@
-# Jengo Schema
+<p align="center">
+  <a href="https://lipex-org.github.io/jengophp.com/">
+    <img src="https://raw.githubusercontent.com/lipex-org/docs/main/public/logo-full.png" width="220" alt="Jengo Logo">
+  </a>
+</p>
 
-Declarative schema-driven querying, relationship derivation, entity hydration, infinite-scrolling cursor pagination, and automated TypeScript definitions generation for CodeIgniter 4 and the Jengo Framework.
+<h1 align="center">Jengo Schema</h1>
 
-Documentation: https://lipex-org.github.io/jengophp.com/packages/schema
+<p align="center">
+  <strong>Declarative schema derivation, relational query builder with context-aware pagination clamping, and automated TypeScript definitions generator for CodeIgniter 4.</strong>
+</p>
+
+<p align="center">
+  <a href="https://lipex-org.github.io/jengophp.com/packages/schema"><strong>Documentation</strong></a> •
+  <a href="https://github.com/lipex-org/schema/blob/main/LICENSE"><strong>License</strong></a> •
+  <a href="https://github.com/lipex-org/schema/issues"><strong>Issues</strong></a>
+</p>
+
+---
 
 ## Installation
 
