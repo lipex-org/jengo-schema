@@ -23,7 +23,9 @@ final class ComputedValueResolver
         /** @var QueryPlan $plan */
         $plan                 = Query::get(QueryPlan::class);
         $schema               = $node->schema;
-        $schemaClass          = class_exists($schema->schemaClass) ? new $schema->schemaClass() : new stdClass();
+        $schemaClass          = class_exists($schema->schemaClass)
+            ? \Jengo\Base\Container\Container::getInstance()->make($schema->schemaClass)
+            : new stdClass();
         $alias                = AliasGenerator::for($node);
         $allViableDependecies = array_merge(
             $plan->selectsRaw[$alias] ?? [],
@@ -147,7 +149,7 @@ final class ComputedValueResolver
 
     private static function computeValue(object &$schemaClass, array &$record, ComputedMetadata $computed): void
     {
-        $computedValue = $schemaClass->{$computed->method}();
+        $computedValue = \Jengo\Base\Container\Container::getInstance()->call([$schemaClass, $computed->method]);
 
         // Apply computed cast if defined
         if ($computed->cast !== null) {
