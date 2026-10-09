@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Jengo\Schema\Hydration;
 
+use Jengo\Base\Container\Container;
 use Jengo\Schema\Debug\QueryLogger;
 use Jengo\Schema\Graph\Node;
 use Jengo\Schema\Metadata\ComputedMetadata;
@@ -24,7 +25,7 @@ final class ComputedValueResolver
         $plan                 = Query::get(QueryPlan::class);
         $schema               = $node->schema;
         $schemaClass          = class_exists($schema->schemaClass)
-            ? \Jengo\Base\Container\Container::getInstance()->make($schema->schemaClass)
+            ? Container::getInstance()->make($schema->schemaClass)
             : new stdClass();
         $alias                = AliasGenerator::for($node);
         $allViableDependecies = array_merge(
@@ -149,7 +150,7 @@ final class ComputedValueResolver
 
     private static function computeValue(object &$schemaClass, array &$record, ComputedMetadata $computed): void
     {
-        $computedValue = \Jengo\Base\Container\Container::getInstance()->call([$schemaClass, $computed->method]);
+        $computedValue = Container::getInstance()->call([$schemaClass, $computed->method]);
 
         // Apply computed cast if defined
         if ($computed->cast !== null) {
